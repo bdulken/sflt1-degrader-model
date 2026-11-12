@@ -1,9 +1,9 @@
 # Sensitivity results
 
-Nine separate plots (PNG and vector PDF), including total sFLT1 for each analysis, and a combined nine-page PDF. Each page starts with a compact baseline-default table (also exported as baseline_parameters.csv). The parameter being varied supersedes its baseline value in each scenario.
+Nine separate plots (PNG and vector PDF), including total sFLT1 for each analysis, and a combined nine-page PDF. Individual plots have no parameter tables. The sensitivity tab retains one baseline-default table at the beginning (also exported as baseline_parameters.csv). The parameter being varied supersedes its baseline value in each scenario.
 
 - Free VEGF half-life: 1, 4, 8, 12 hours. PlGF free half-life stays at its default (16.64 hours).
-- Degrader half-life: 1, 3, 7 days, with single-dose initial effective clearance of 2/day. Effective clearance decays as 2*exp(-ln(2)*t/half-life). No redosing. This assumes activity is proportional to exposure, not a saturable PK/PD model.
+- Degrader half-life: 2 hours, 12 hours, 1 day, 3 days, 7 days, with single-dose initial effective clearance of 2/day. Effective clearance decays as 2*exp(-ln(2)*t/half-life). No redosing. This assumes activity is proportional to exposure, not a saturable PK/PD model.
 - Co-degradation fraction: 25%, 50%, 75%, changed together for both ligands. The remainder returns to free ligand.
 
 These are separate one-at-a-time analyses, not a full factorial combination. All analyses use a single dose on day 0 with initial clearance 2/day and exponential decay. Degrader half-life is 3 days in the VEGF-half-life and co-degradation analyses. Both ligand co-degradation fractions stay at 25% in the other analyses. Free VEGF half-life stays at 34 minutes except in its own analysis. Treatment begins on day 0; simulation and treatment windows end at day 14.

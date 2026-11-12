@@ -69,7 +69,7 @@ with sensitivity_tab:
     results = Path(__file__).resolve().parent / 'sensitivity_results'
     for group, title, description in [
         ('vegf_half_life', 'Free VEGF half-life', '1, 4, 8 and 12 hours. Free PlGF half-life remains 16.64 hours.'),
-        ('degrader_half_life', 'Degrader half-life', '1, 3 and 7 days. A single dose starts at clearance 2/day; activity decays exponentially, without redosing.'),
+        ('degrader_half_life', 'Degrader half-life', '2 hours, 12 hours, 1 day, 3 days and 7 days. A single dose starts at clearance 2/day; activity decays exponentially, without redosing.'),
         ('codegradation', 'Ligand co-degradation', '25%, 50% and 75%, changed together for VEGF and PlGF. The remaining ligand returns to the free pool.'),
     ]:
         st.markdown(f'### {title}')

@@ -18,12 +18,12 @@ BASE=Parameters()
 GROUPS=[
     ('vegf_half_life','Free VEGF half-life',[(f'{h} hour'+('s' if h!=1 else ''),dict(vegf_half_hours=h),BASE.degrader_half_days) for h in [1,4,8,12]],
      'Single dose: initial clearance 2/day, degrader half-life 3 days; 25% co-degradation'),
-    ('degrader_half_life','Degrader half-life',[(f'{h} day'+('s' if h!=1 else ''),{},h) for h in [1,3,7]],
+    ('degrader_half_life','Degrader half-life',[('2 hours',{},2/24),('12 hours',{},12/24)]+[(f'{h} day'+('s' if h!=1 else ''),{},h) for h in [1,3,7]],
      'Single dose: initial clearance 2/day, exponentially decaying; 25% co-degradation'),
     ('codegradation','Ligand co-degradation',[(f'{int(f*100)}%',dict(co_v=f,co_p=f),BASE.degrader_half_days) for f in [.25,.5,.75]],
      'Same fraction for VEGF and PlGF; single dose, initial clearance 2/day, half-life 3 days'),
 ]
-COLORS=['#176b99','#d17b18','#287961','#884da0']
+COLORS=['#176b99','#d17b18','#287961','#884da0','#c14465']
 
 def main():
     OUT.mkdir(exist_ok=True)
@@ -69,17 +69,7 @@ def main():
                 scenario_meta.append(dict(analysis=group,scenario=label,parameters=asdict(p),derived=meta))
                 scenarios.append((label,df,control))
             for ligand,label in [('vegf','Free VEGF-A'),('plgf','Free PlGF'),('sflt1','Total sFLT1')]:
-                fig=plt.figure(figsize=(12,8.5),layout='constrained')
-                layout=fig.add_gridspec(2,1,height_ratios=[1.8,5])
-                table_ax=fig.add_subplot(layout[0]);table_ax.axis('off')
-                paired=[[*baseline_rows[i],*baseline_rows[i+6]] for i in range(6)]
-                table=table_ax.table(cellText=paired,colLabels=['Baseline parameter','Default','Baseline parameter','Default'],cellLoc='left',colLoc='left',colWidths=[.24,.25,.25,.26],bbox=[0,0,1,1])
-                table.auto_set_font_size(False);table.set_fontsize(7.4)
-                for (row,col),cell in table.get_celld().items():
-                    cell.set_edgecolor('#dbe3ea')
-                    cell.set_facecolor('#edf2f6' if row==0 else 'white')
-                    if row==0:cell.set_text_props(weight='bold')
-                ax=fig.add_subplot(layout[1])
+                fig,ax=plt.subplots(figsize=(10,6.4),layout='constrained')
                 key='total_sflt1_ng_mL' if ligand=='sflt1' else f'free_{ligand}_pg_mL'
                 unit='ng/mL' if ligand=='sflt1' else 'pg/mL' 
                 for color,(scenario,df,control) in zip(COLORS,scenarios):
@@ -108,10 +98,10 @@ def main():
     (OUT/'sensitivity_parameters.json').write_text(json.dumps(scenario_meta,indent=2))
     (OUT/'README.md').write_text('''# Sensitivity results
 
-Nine separate plots (PNG and vector PDF), including total sFLT1 for each analysis, and a combined nine-page PDF. Each page starts with a compact baseline-default table (also exported as baseline_parameters.csv). The parameter being varied supersedes its baseline value in each scenario.
+Nine separate plots (PNG and vector PDF), including total sFLT1 for each analysis, and a combined nine-page PDF. Individual plots have no parameter tables. The sensitivity tab retains one baseline-default table at the beginning (also exported as baseline_parameters.csv). The parameter being varied supersedes its baseline value in each scenario.
 
 - Free VEGF half-life: 1, 4, 8, 12 hours. PlGF free half-life stays at its default (16.64 hours).
-- Degrader half-life: 1, 3, 7 days, with single-dose initial effective clearance of 2/day. Effective clearance decays as 2*exp(-ln(2)*t/half-life). No redosing. This assumes activity is proportional to exposure, not a saturable PK/PD model.
+- Degrader half-life: 2 hours, 12 hours, 1 day, 3 days, 7 days, with single-dose initial effective clearance of 2/day. Effective clearance decays as 2*exp(-ln(2)*t/half-life). No redosing. This assumes activity is proportional to exposure, not a saturable PK/PD model.
 - Co-degradation fraction: 25%, 50%, 75%, changed together for both ligands. The remainder returns to free ligand.
 
 These are separate one-at-a-time analyses, not a full factorial combination. All analyses use a single dose on day 0 with initial clearance 2/day and exponential decay. Degrader half-life is 3 days in the VEGF-half-life and co-degradation analyses. Both ligand co-degradation fractions stay at 25% in the other analyses. Free VEGF half-life stays at 34 minutes except in its own analysis. Treatment begins on day 0; simulation and treatment windows end at day 14.
