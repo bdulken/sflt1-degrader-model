@@ -22,7 +22,7 @@ class Parameters:
     kd_p_pm: float = 150
     kon_v_pm_day: float = 1
     kon_p_pm_day: float = 1
-    degrader_half_days: float = 3
+    degrader_half_days: float = 1
     degrader_per_day: float = 2
     complex_activity: float = 1
     co_v: float = 0.25

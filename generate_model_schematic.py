@@ -86,7 +86,7 @@ for (i,j),cell in table.get_celld().items():
     if i==0:cell.set_text_props(weight='bold',color=ink)
 text(10.55,2.18,'NATURAL LOSS & INPUTS',10,weight='bold',ha='left')
 text(10.55,1.65,'Every state has first-order natural loss.\nComplex loss destroys ligand; other-site capacity is maintained.\nqS, qL and qT continue throughout treatment.\nStorage also releases at rT (default zero).',8.7,ha='left')
-text(10.55,.94,'Production is calibrated to initial untreated steady state.\nSingle dose day 0: initial 2/day, half-life 3 days.\nStorage and affinity are effective assumptions.',8.7,ha='left')
+text(10.55,.94,'Production is calibrated to initial untreated steady state.\nSingle dose day 0: initial 2/day, half-life 1 day.\nStorage and affinity are effective assumptions.',8.7,ha='left')
 text(.3,.3,'Plasma total = L + C + O; all pools = L + C + O + T.  Independent O/T sites for each ligand; only sFLT1 is shared.',9,muted,ha='left')
 text(.3,.02,'Exploratory model, not a validated physiological or assay prediction.  Source: model.py defaults; regeneration script: generate_model_schematic.py.',8,muted,ha='left')
 fig.savefig(OUT/'model_schematic.pdf',metadata={'Title':'sFLT1 degrader model schematic','Subject':'VEGF and PlGF binding, platelet VEGF / placental PlGF storage and co-degradation'})

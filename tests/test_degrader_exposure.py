@@ -31,12 +31,12 @@ class ExposureTests(unittest.TestCase):
         for half in [0,-1,np.nan,np.inf]:
             with self.assertRaises(ValueError):simulate(degrader_half_days=half)
 
-    def test_default_is_single_dose_with_three_day_half_life(self):
+    def test_default_is_single_dose_with_one_day_half_life(self):
         p=Parameters()
-        self.assertEqual(p.degrader_half_days,3)
+        self.assertEqual(p.degrader_half_days,1)
         default,meta=simulate(p)
-        explicit,_=simulate(p,degrader_half_days=3)
+        explicit,_=simulate(p,degrader_half_days=1)
         np.testing.assert_allclose(default,explicit)
-        self.assertEqual(meta['degrader_half_days'],3)
+        self.assertEqual(meta['degrader_half_days'],1)
         constant,_=simulate(p,degrader_half_days=None)
         self.assertGreater(default.total_sflt1_ng_mL.iloc[-1],constant.total_sflt1_ng_mL.iloc[-1])

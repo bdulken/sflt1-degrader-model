@@ -1,7 +1,7 @@
 Parameter,Default
 Dose / duration,Single dose day 0 / 14 days
 Initial degrader clearance,2/day
-Degrader half-life,3 days
+Degrader half-life,1 day
 Co-degradation: VEGF / PlGF,25% / 25%
 Free VEGF / PlGF half-life,34 min / 16.64 h
 Initial total sFLT1,10 ng/mL
