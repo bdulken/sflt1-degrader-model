@@ -8,7 +8,7 @@ python3 -m venv .venv
 .venv/bin/streamlit run app.py
 ```
 
-Open the localhost URL printed by Streamlit. Inputs update automatically. **Regenerate model** reruns current inputs; **Revert to defaults** restores all settings. Charts show persistent lines/points and do not use scroll zoom. CSV and parameter downloads are available.
+Open the localhost URL printed by Streamlit. Inputs update automatically. **Regenerate model** reruns current inputs; **Revert to defaults** restores all settings. The **Interactive model** tab contains simulation results; the **Model schematic** tab displays the default reference diagram and offers a PDF download. The schematic does not track edited inputs. Charts show persistent lines/points and do not use scroll zoom. CSV and parameter downloads are available.
 
 ## Current defaults
 
