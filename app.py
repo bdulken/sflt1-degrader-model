@@ -6,10 +6,11 @@ import pandas as pd
 import altair as alt
 import streamlit as st
 from model import Parameters, setup, simulate
+from default_parameters import default_parameter_table
 
 st.set_page_config(page_title='sFLT1 degrader model',layout='wide')
 st.title('sFLT1 degrader model')
-st.caption('Explore free VEGF-A and PlGF during continuous sFLT1 degradation. Illustrative single-compartment model using the supplied project PDF; parameters are assumptions, not fitted patient estimates.')
+st.caption('Explore free VEGF-A and PlGF following a single dose of an sFLT1 degrader. Illustrative single-compartment model using the supplied project PDF; parameters are assumptions, not fitted patient estimates.')
 base=Parameters()
 values=asdict(base)
 
@@ -31,7 +32,16 @@ def chart(frame, ylabel, zero=True):
 def number(key,label,minimum=0.0):
     values[key]=st.number_input(label,min_value=minimum,value=float(values[key]),format='%.6g',key=key)
 
-model_tab, schematic_tab, sensitivity_tab = st.tabs(['Interactive model', 'Model schematic', 'Sensitivity analysis'])
+model_tab, schematic_tab, sensitivity_tab, defaults_tab = st.tabs(['Interactive model', 'Model schematic', 'Sensitivity analysis', 'Default parameters'])
+
+with defaults_tab:
+    st.subheader('Default parameters')
+    st.caption('Reference values from the model defaults, independent of sidebar edits. VEGF storage is in platelets; PlGF storage is in the placenta. Plasma ligand totals exclude storage. Fractions of 0.25 and 1 correspond to 25% and 100%.')
+    defaults = default_parameter_table()
+    st.dataframe(defaults,hide_index=True,width='stretch',height=1020)
+    st.caption('Default production mode: recalibrate to initial untreated steady state, then hold inputs fixed. One degrader dose is given on day 0 with exponential activity decay; no redosing. Free VEGF half-life 0.566667 hours = 34 minutes. Storage kinetics and affinities are effective assumptions.')
+    st.download_button('Download default parameters (CSV)',defaults.to_csv(index=False),'default_parameters.csv','text/csv',key='download_default_parameters')
+    st.download_button('Download default input parameters (JSON)',json.dumps(asdict(base),indent=2),'default_input_parameters.json','application/json',key='download_default_inputs')
 
 with schematic_tab:
     st.subheader('Model schematic')
