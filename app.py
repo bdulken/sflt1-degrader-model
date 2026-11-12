@@ -44,7 +44,7 @@ with defaults_tab:
 
 with schematic_tab:
     st.subheader('Model schematic')
-    st.caption('Reference diagram showing the model structure and default parameters, including 25% co-degradation. It does not change when you adjust the simulation inputs.')
+    st.caption('Reference diagram showing direct degrader action on free sFLT1, sFLT1–VEGF and sFLT1–PlGF, including 25% ligand co-degradation. It does not change when you adjust the simulation inputs.')
     assets = Path(__file__).resolve().parent
     st.image(str(assets / 'model_schematic.png'), use_container_width=True)
     st.download_button(
