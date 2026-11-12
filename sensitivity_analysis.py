@@ -16,12 +16,12 @@ from model import Parameters, simulate
 OUT=Path(__file__).resolve().parent/'sensitivity_results'
 BASE=Parameters()
 GROUPS=[
-    ('vegf_half_life','Free VEGF half-life',[(f'{h} hour'+('s' if h!=1 else ''),dict(vegf_half_hours=h),None) for h in [1,4,8,12]],
-     'Constant degrader clearance 2/day; 25% co-degradation of both ligands'),
+    ('vegf_half_life','Free VEGF half-life',[(f'{h} hour'+('s' if h!=1 else ''),dict(vegf_half_hours=h),BASE.degrader_half_days) for h in [1,4,8,12]],
+     'Single dose: initial clearance 2/day, degrader half-life 3 days; 25% co-degradation'),
     ('degrader_half_life','Degrader half-life',[(f'{h} day'+('s' if h!=1 else ''),{},h) for h in [1,3,7]],
      'Single dose: initial clearance 2/day, exponentially decaying; 25% co-degradation'),
-    ('codegradation','Ligand co-degradation',[(f'{int(f*100)}%',dict(co_v=f,co_p=f),None) for f in [.25,.5,.75]],
-     'Same fraction for VEGF and PlGF; constant degrader clearance 2/day'),
+    ('codegradation','Ligand co-degradation',[(f'{int(f*100)}%',dict(co_v=f,co_p=f),BASE.degrader_half_days) for f in [.25,.5,.75]],
+     'Same fraction for VEGF and PlGF; single dose, initial clearance 2/day, half-life 3 days'),
 ]
 COLORS=['#176b99','#d17b18','#287961','#884da0']
 
@@ -79,7 +79,7 @@ Six separate plots (PNG and vector PDF) and a combined six-page PDF.
 - Degrader half-life: 1, 3, 7 days, with single-dose initial effective clearance of 2/day. Effective clearance decays as 2*exp(-ln(2)*t/half-life). No redosing. This assumes activity is proportional to exposure, not a saturable PK/PD model.
 - Co-degradation fraction: 25%, 50%, 75%, changed together for both ligands. The remainder returns to free ligand.
 
-These are separate one-at-a-time analyses, not a full factorial combination. Degrader clearance stays constant at 2/day in the VEGF-half-life and co-degradation analyses. Both ligand co-degradation fractions stay at 25% in the other analyses. Free VEGF half-life stays at 34 minutes except in its own analysis. Treatment begins on day 0; simulation and treatment windows end at day 14.
+These are separate one-at-a-time analyses, not a full factorial combination. All analyses use a single dose on day 0 with initial clearance 2/day and exponential decay. Degrader half-life is 3 days in the VEGF-half-life and co-degradation analyses. Both ligand co-degradation fractions stay at 25% in the other analyses. Free VEGF half-life stays at 34 minutes except in its own analysis. Treatment begins on day 0; simulation and treatment windows end at day 14.
 
 For each scenario, production is recalibrated to the initial untreated kinetic steady state, then kept fixed throughout the simulation. Initial distributions, other binding and platelet storage retain their current default values. Untreated curves coincide across scenarios and are shown as a single dashed baseline. Production differs across VEGF-half-life scenarios; this is not a fixed-production comparison.
 

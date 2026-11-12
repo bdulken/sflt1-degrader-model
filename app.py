@@ -49,7 +49,7 @@ with schematic_tab:
 with sensitivity_tab:
     st.subheader('Sensitivity analysis')
     st.write('Separate 14-day analyses of free VEGF and free PlGF, varying one parameter at a time. Production is recalibrated to initial untreated steady state for every scenario.')
-    st.info('These are saved reference results using model defaults, not the current sidebar inputs. Degrader clearance is constant at 2/day except in the single-dose degrader half-life analysis. Other settings retain their defaults, including 25% co-degradation when that parameter is not being varied.')
+    st.info('These are saved reference results using model defaults, not the current sidebar inputs. All analyses use a single dose on day 0, initial clearance 2/day, and exponential activity decay. The reference degrader half-life is 3 days except when varied. Other settings retain their defaults, including 25% co-degradation when that parameter is not being varied.')
     results = Path(__file__).resolve().parent / 'sensitivity_results'
     for group, title, description in [
         ('vegf_half_life', 'Free VEGF half-life', '1, 4, 8 and 12 hours. Free PlGF half-life remains 16.64 hours.'),
@@ -90,7 +90,9 @@ with model_tab:
             number('sv_half_hours','sFLT1–VEGF complex half-life (hours)',0.001)
             number('sp_half_hours','sFLT1–PlGF complex half-life (hours)',0.001)
         with st.expander('Degrader',expanded=True):
-            number('degrader_per_day','Additional free sFLT1 clearance (/day)')
+            number('degrader_half_days','Degrader half-life (days; single dose)',0.001)
+            st.caption('One dose at treatment start. Activity decays exponentially; there is no daily redosing. The 3-day default is an adjustable reference assumption.')
+            number('degrader_per_day','Initial degrader-mediated free sFLT1 clearance (/day)')
             values['complex_activity']=st.slider('Relative activity on bound sFLT1',0.,1.,1.,0.05,key='complex_activity')
             values['co_v']=st.slider('VEGF co-degradation fraction',0.,1.,float(base.co_v),0.05,key='co_v')
             values['co_p']=st.slider('PlGF co-degradation fraction',0.,1.,float(base.co_p),0.05,key='co_p')
@@ -209,7 +211,7 @@ with model_tab:
     - dL/dt = qL − kL L − Rₗ + (1 − fₗ) dC Cₗ
     - dCₗ/dt = Rₗ − (kCₗ + dC)Cₗ
 
-    Here d is the selected degrader clearance during the treatment window, dC = d × relative complex activity, and f is the co-degradation fraction. Natural complex clearance destroys both partners. Half-life converts to rate as ln(2)/half-life.
+    Here d(t) = d₀ exp[−ln(2)(t − t_start)/half-life] after the single dose at treatment start, within the treatment window; no repeated doses are given. The default half-life is 3 days. dC = d × relative complex activity, and f is the co-degradation fraction. Natural complex clearance destroys both partners. Half-life converts to rate as ln(2)/half-life.
 
     Initialization solves the **kinetic untreated steady state**, including complex clearance: Cₗ = S L / (Kdₗ + kCₗ/konₗ). Production is then calibrated to balance losses. This avoids drift caused by initializing at binding equilibrium while simultaneously clearing complexes. Changing half-life in recalibration mode also changes production.
 

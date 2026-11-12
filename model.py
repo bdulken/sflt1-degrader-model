@@ -22,6 +22,7 @@ class Parameters:
     kd_p_pm: float = 150
     kon_v_pm_day: float = 1
     kon_p_pm_day: float = 1
+    degrader_half_days: float = 3
     degrader_per_day: float = 2
     complex_activity: float = 1
     co_v: float = 0.25
@@ -59,7 +60,7 @@ class Parameters:
         d=asdict(self)
         if not all(np.isfinite(v) for v in d.values()):
             raise ValueError('All parameters must be finite.')
-        positive=['sflt1_mw_kda','vegf_mw_kda','plgf_mw_kda','sflt1_half_hours','vegf_half_hours','plgf_half_hours','sv_half_hours','sp_half_hours','kd_v_pm','kd_p_pm','kon_v_pm_day','kon_p_pm_day','days','other_kd_pm','other_kon_pm_day','other_complex_half_hours','platelet_half_hours','platelet_kd_pm','plgf_other_kd_pm','plgf_other_kon_pm_day','plgf_other_complex_half_hours','plgf_platelet_kd_pm','plgf_platelet_half_hours']
+        positive=['sflt1_mw_kda','vegf_mw_kda','plgf_mw_kda','sflt1_half_hours','vegf_half_hours','plgf_half_hours','sv_half_hours','sp_half_hours','kd_v_pm','kd_p_pm','kon_v_pm_day','kon_p_pm_day','days','other_kd_pm','other_kon_pm_day','other_complex_half_hours','platelet_half_hours','platelet_kd_pm','plgf_other_kd_pm','plgf_other_kon_pm_day','plgf_other_complex_half_hours','plgf_platelet_kd_pm','plgf_platelet_half_hours','degrader_half_days']
         if any(d[k]<=0 for k in positive) or any(v<0 for v in d.values()):
             raise ValueError('Rates/concentrations must be nonnegative; half-lives, affinities, association rates, molecular weights and duration must be positive.')
         if any(d[k]>1 for k in ['co_v','co_p','complex_activity']):
@@ -106,8 +107,12 @@ def setup(p):
     q=np.r_[ks*s+np.dot([kcv,kcp],complex_),qlig]
     return y,q,(ks,kv,kp,kcv,kcp)
 
-def simulate(p=None, production=None, treated=True, degrader_half_days=None):
+_DEFAULT_EXPOSURE = object()
+
+def simulate(p=None, production=None, treated=True, degrader_half_days=_DEFAULT_EXPOSURE):
     p=p or Parameters()
+    if degrader_half_days is _DEFAULT_EXPOSURE:
+        degrader_half_days=p.degrader_half_days
     if degrader_half_days is not None and (not np.isfinite(degrader_half_days) or degrader_half_days<=0):
         raise ValueError('Degrader half-life must be finite and positive, or None for constant exposure.')
     y0,q,rates=setup(p)

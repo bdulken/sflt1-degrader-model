@@ -4,7 +4,7 @@ import numpy as np
 from model import Parameters as DefaultParameters, setup, simulate
 
 def Parameters(**kwargs):
-    return DefaultParameters(**dict(dict(vegf_pg_ml=100,plgf_pg_ml=100,platelet_vegf_pg_ml=0,other_capacity_pm=100,platelet_kon_pm_day=0,plgf_other_capacity_pm=0,platelet_plgf_pg_ml=0,plgf_platelet_kon_pm_day=0),**kwargs))
+    return DefaultParameters(**dict(dict(degrader_half_days=1e12,vegf_pg_ml=100,plgf_pg_ml=100,platelet_vegf_pg_ml=0,other_capacity_pm=100,platelet_kon_pm_day=0,plgf_other_capacity_pm=0,platelet_plgf_pg_ml=0,plgf_platelet_kon_pm_day=0),**kwargs))
 
 class ModelTests(unittest.TestCase):
     def test_untreated_is_steady_with_independent_complex_clearance(self):

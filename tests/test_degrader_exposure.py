@@ -19,7 +19,7 @@ class ExposureTests(unittest.TestCase):
                 self.assertAlmostEqual(df.total_sflt1_ng_mL.iloc[i],expected,places=5)
 
     def test_very_long_half_life_matches_constant_exposure(self):
-        a,_=simulate()
+        a,_=simulate(degrader_half_days=None)
         b,_=simulate(degrader_half_days=1e10)
         for col in ['free_vegf_pg_mL','free_plgf_pg_mL','total_sflt1_ng_mL']:
             np.testing.assert_allclose(a[col],b[col],rtol=1e-6)
@@ -30,3 +30,13 @@ class ExposureTests(unittest.TestCase):
         np.testing.assert_allclose(a.free_vegf_pg_mL,a.free_vegf_pg_mL.iloc[0],rtol=1e-6)
         for half in [0,-1,np.nan,np.inf]:
             with self.assertRaises(ValueError):simulate(degrader_half_days=half)
+
+    def test_default_is_single_dose_with_three_day_half_life(self):
+        p=Parameters()
+        self.assertEqual(p.degrader_half_days,3)
+        default,meta=simulate(p)
+        explicit,_=simulate(p,degrader_half_days=3)
+        np.testing.assert_allclose(default,explicit)
+        self.assertEqual(meta['degrader_half_days'],3)
+        constant,_=simulate(p,degrader_half_days=None)
+        self.assertGreater(default.total_sflt1_ng_mL.iloc[-1],constant.total_sflt1_ng_mL.iloc[-1])
