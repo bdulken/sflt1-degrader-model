@@ -8,7 +8,7 @@ python3 -m venv .venv
 .venv/bin/streamlit run app.py
 ```
 
-Open the localhost URL printed by Streamlit. Inputs update automatically. **Regenerate model** reruns current inputs; **Revert to defaults** restores all settings. The **Interactive model** tab contains simulation results; the **Model schematic** tab displays the default reference diagram and offers a PDF download. The schematic does not track edited inputs. Charts show persistent lines/points and do not use scroll zoom. CSV and parameter downloads are available.
+Open the localhost URL printed by Streamlit. Inputs update automatically. **Regenerate model** reruns current inputs; **Revert to defaults** restores all settings. The **Sensitivity analysis** tab displays the six saved sensitivity plots with PDF/CSV downloads; these reference results do not track sidebar edits. The **Interactive model** tab contains simulation results; the **Model schematic** tab displays the default reference diagram and offers a PDF download. The schematic does not track edited inputs. Charts show persistent lines/points and do not use scroll zoom. CSV and parameter downloads are available.
 
 ## Current defaults
 
@@ -86,3 +86,8 @@ The sensitivity script recalibrates production for each VEGF half-life and uses 
 The app requires no secrets or external data files. Runtime dependencies are pinned in `requirements.txt`; plotting and PDF development tools are separate. A private GitHub repository can be used with the required GitHub access granted to Streamlit. Review app sharing settings separately from repository visibility. See the [official deployment guide](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/deploy).
 
 GitHub Actions runs model tests and a dashboard smoke check. The context PDF/transcript, virtual environment, secrets and generated sensitivity outputs are excluded. The schematic and its generation script are included.
+
+
+## Sensitivity analyses
+
+Run `MPLCONFIGDIR=.mplconfig .venv/bin/python sensitivity_analysis.py` after installing `requirements-dev.txt`. Outputs are saved to `sensitivity_results/`: six individual PNG/PDF plots, one six-page PDF, full time-course/summary CSVs and scenario parameters. Analyses vary one input at a time: free VEGF half-life (1, 4, 8, 12 hours), single-dose degrader half-life (1, 3, 7 days), or joint VEGF/PlGF co-degradation (25%, 50%, 75%). Each scenario recalibrates production to initial untreated steady state. The degrader-half-life analysis uses initial clearance 2/day with exponential decay and no redosing; other analyses retain constant clearance 2/day. `simulate(..., degrader_half_days=None)` preserves constant exposure; a positive half-life enables linear activity decay from treatment start. This exposure option is currently used by the analysis script, not the dashboard controls.

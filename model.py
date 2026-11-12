@@ -106,8 +106,10 @@ def setup(p):
     q=np.r_[ks*s+np.dot([kcv,kcp],complex_),qlig]
     return y,q,(ks,kv,kp,kcv,kcp)
 
-def simulate(p=None, production=None, treated=True):
+def simulate(p=None, production=None, treated=True, degrader_half_days=None):
     p=p or Parameters()
+    if degrader_half_days is not None and (not np.isfinite(degrader_half_days) or degrader_half_days<=0):
+        raise ValueError('Degrader half-life must be finite and positive, or None for constant exposure.')
     y0,q,rates=setup(p)
     if production is not None:
         q=np.asarray(production,dtype=float)
@@ -124,6 +126,8 @@ def simulate(p=None, production=None, treated=True):
     qt=((pools['storage_clear']+pools['release'])*pools['stored']-initial_exchange)*pools['replenish']
     co=np.array([p.co_v,p.co_p])
     def rhs(t,y,d):
+        if degrader_half_days is not None:
+            d=d*np.exp(-np.log(2)*max(0.,t-p.start_day)/degrader_half_days)
         s=y[0]; free=y[1:3]; complexes=y[3:5]
         other=y[[5,7]]; stored=y[[6,8]]
         ro=pools['other_kon']*((pools['capacity']-other)*free-pools['other_kd']*other)
@@ -159,7 +163,7 @@ def simulate(p=None, production=None, treated=True):
     df=pd.DataFrame(columns)
     meta={**asdict(p),'production_s_pM_day':q[0],'production_v_pM_day':q[1],'production_p_pM_day':q[2],
           'platelet_production_pM_day':qt[0],'platelet_effective_capacity_pM':storage_capacity[0],
-          'plgf_platelet_production_pM_day':qt[1],'plgf_platelet_effective_capacity_pM':storage_capacity[1]}
+          'degrader_half_days':degrader_half_days,'plgf_platelet_production_pM_day':qt[1],'plgf_platelet_effective_capacity_pM':storage_capacity[1]}
     return df,meta
 
 def model(kdeg=2,kv=None,co=0.25,**kwargs):

@@ -31,7 +31,7 @@ def chart(frame, ylabel, zero=True):
 def number(key,label,minimum=0.0):
     values[key]=st.number_input(label,min_value=minimum,value=float(values[key]),format='%.6g',key=key)
 
-model_tab, schematic_tab = st.tabs(['Interactive model', 'Model schematic'])
+model_tab, schematic_tab, sensitivity_tab = st.tabs(['Interactive model', 'Model schematic', 'Sensitivity analysis'])
 
 with schematic_tab:
     st.subheader('Model schematic')
@@ -45,6 +45,30 @@ with schematic_tab:
         mime='application/pdf',
         key='download_schematic',
     )
+
+with sensitivity_tab:
+    st.subheader('Sensitivity analysis')
+    st.write('Separate 14-day analyses of free VEGF and free PlGF, varying one parameter at a time. Production is recalibrated to initial untreated steady state for every scenario.')
+    st.info('These are saved reference results using model defaults, not the current sidebar inputs. Degrader clearance is constant at 2/day except in the single-dose degrader half-life analysis. Other settings retain their defaults, including 25% co-degradation when that parameter is not being varied.')
+    results = Path(__file__).resolve().parent / 'sensitivity_results'
+    for group, title, description in [
+        ('vegf_half_life', 'Free VEGF half-life', '1, 4, 8 and 12 hours. Free PlGF half-life remains 16.64 hours.'),
+        ('degrader_half_life', 'Degrader half-life', '1, 3 and 7 days. A single dose starts at clearance 2/day; activity decays exponentially, without redosing.'),
+        ('codegradation', 'Ligand co-degradation', '25%, 50% and 75%, changed together for VEGF and PlGF. The remaining ligand returns to the free pool.'),
+    ]:
+        st.markdown(f'### {title}')
+        st.caption(description)
+        for col, ligand, label in zip(st.columns(2), ['vegf', 'plgf'], ['Free VEGF-A', 'Free PlGF']):
+            with col:
+                st.markdown(f'**{label}**')
+                stem = f'{group}_free_{ligand}'
+                st.image(str(results / f'{stem}.png'), width='stretch')
+                st.download_button(f'Download {label} plot (PDF)', (results / f'{stem}.pdf').read_bytes(), f'{stem}.pdf', 'application/pdf', key=f'download_{stem}')
+    st.caption('Axes use different vertical scales. Platelet and other-binding pools are exploratory assumptions. Peaks can occur before day 14; endpoint and peak results are both reported in the summary.')
+    st.download_button('Download all six plots (PDF)', (results / 'sensitivity_analysis_all_plots.pdf').read_bytes(), 'sensitivity_analysis_all_plots.pdf', 'application/pdf')
+    st.download_button('Download sensitivity summary (CSV)', (results / 'sensitivity_summary.csv').read_bytes(), 'sensitivity_summary.csv', 'text/csv')
+    st.download_button('Download sensitivity time courses (CSV)', (results / 'sensitivity_time_courses.csv').read_bytes(), 'sensitivity_time_courses.csv', 'text/csv')
+    st.download_button('Download sensitivity parameters (JSON)', (results / 'sensitivity_parameters.json').read_bytes(), 'sensitivity_parameters.json', 'application/json')
 
 with model_tab:
     with st.sidebar:
