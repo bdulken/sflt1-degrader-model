@@ -1,6 +1,6 @@
 # Sensitivity results
 
-Six separate plots (PNG and vector PDF) and a combined six-page PDF.
+Nine separate plots (PNG and vector PDF), including total sFLT1 for each analysis, and a combined nine-page PDF. Each page starts with a compact baseline-default table (also exported as baseline_parameters.csv). The parameter being varied supersedes its baseline value in each scenario.
 
 - Free VEGF half-life: 1, 4, 8, 12 hours. PlGF free half-life stays at its default (16.64 hours).
 - Degrader half-life: 1, 3, 7 days, with single-dose initial effective clearance of 2/day. Effective clearance decays as 2*exp(-ln(2)*t/half-life). No redosing. This assumes activity is proportional to exposure, not a saturable PK/PD model.
@@ -10,6 +10,6 @@ These are separate one-at-a-time analyses, not a full factorial combination. All
 
 For each scenario, production is recalibrated to the initial untreated kinetic steady state, then kept fixed throughout the simulation. Initial distributions, other binding and platelet storage retain their current default values. Untreated curves coincide across scenarios and are shown as a single dashed baseline. Production differs across VEGF-half-life scenarios; this is not a fixed-production comparison.
 
-Summary CSV reports day-14 and peak concentrations with peak timing; decaying degrader responses can peak before day 14. Full treated/untreated time courses and effective clearance are in the time-course CSV. Full defaults and effective inputs are in the parameters JSON. Units for concentrations are pg/mL and time is days. All values are exploratory model predictions, not validated physiological estimates.
+Summary CSV reports ligand day-14 and peak concentrations with peak timing, plus total sFLT1 endpoints and nadirs (ng/mL); decaying degrader responses can peak before day 14. Full treated/untreated time courses and effective clearance are in the time-course CSV. Full defaults and effective inputs are in the parameters JSON. Units for concentrations are pg/mL and time is days. All values are exploratory model predictions, not validated physiological estimates.
 
 Regenerate from the project folder: `MPLCONFIGDIR=.mplconfig .venv/bin/python sensitivity_analysis.py` (requires requirements-dev.txt).

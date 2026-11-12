@@ -48,7 +48,14 @@ with schematic_tab:
 
 with sensitivity_tab:
     st.subheader('Sensitivity analysis')
-    st.write('Separate 14-day analyses of free VEGF and free PlGF, varying one parameter at a time. Production is recalibrated to initial untreated steady state for every scenario.')
+    st.write('Separate 14-day analyses of free VEGF, free PlGF and total sFLT1, varying one parameter at a time. Production is recalibrated to initial untreated steady state for every scenario.')
+    results = Path(__file__).resolve().parent / 'sensitivity_results'
+    baseline_defaults = pd.read_csv(results / 'baseline_parameters.csv')
+    left = baseline_defaults.iloc[:6].reset_index(drop=True)
+    right = baseline_defaults.iloc[6:].reset_index(drop=True).rename(columns={'Parameter':'Parameter (continued)','Default':'Default (continued)'})
+    st.markdown('**Baseline defaults for these saved analyses**')
+    st.dataframe(pd.concat([left,right],axis=1),hide_index=True,use_container_width=True)
+    st.caption('Each sensitivity varies the labeled parameter away from this reference; all other defaults remain fixed. Other-binder and platelet affinities are effective assumptions.')
     st.info('These are saved reference results using model defaults, not the current sidebar inputs. All analyses use a single dose on day 0, initial clearance 2/day, and exponential activity decay. The reference degrader half-life is 3 days except when varied. Other settings retain their defaults, including 25% co-degradation when that parameter is not being varied.')
     results = Path(__file__).resolve().parent / 'sensitivity_results'
     for group, title, description in [
@@ -64,8 +71,14 @@ with sensitivity_tab:
                 stem = f'{group}_free_{ligand}'
                 st.image(str(results / f'{stem}.png'), width='stretch')
                 st.download_button(f'Download {label} plot (PDF)', (results / f'{stem}.pdf').read_bytes(), f'{stem}.pdf', 'application/pdf', key=f'download_{stem}')
+        st.markdown('**Total sFLT1**')
+        stem = f'{group}_total_sflt1'
+        st.image(str(results / f'{stem}.png'), width='stretch')
+        st.download_button('Download total sFLT1 plot (PDF)', (results / f'{stem}.pdf').read_bytes(), f'{stem}.pdf', 'application/pdf', key=f'download_{stem}')
+        if group != 'degrader_half_life':
+            st.caption('Total sFLT1 curves overlap: with identical natural sFLT1/complex clearance and equal degrader activity on free/bound sFLT1, these ligand parameter changes do not alter total sFLT1 turnover.')
     st.caption('Axes use different vertical scales. Platelet and other-binding pools are exploratory assumptions. Peaks can occur before day 14; endpoint and peak results are both reported in the summary.')
-    st.download_button('Download all six plots (PDF)', (results / 'sensitivity_analysis_all_plots.pdf').read_bytes(), 'sensitivity_analysis_all_plots.pdf', 'application/pdf')
+    st.download_button('Download all nine plots (PDF)', (results / 'sensitivity_analysis_all_plots.pdf').read_bytes(), 'sensitivity_analysis_all_plots.pdf', 'application/pdf')
     st.download_button('Download sensitivity summary (CSV)', (results / 'sensitivity_summary.csv').read_bytes(), 'sensitivity_summary.csv', 'text/csv')
     st.download_button('Download sensitivity time courses (CSV)', (results / 'sensitivity_time_courses.csv').read_bytes(), 'sensitivity_time_courses.csv', 'text/csv')
     st.download_button('Download sensitivity parameters (JSON)', (results / 'sensitivity_parameters.json').read_bytes(), 'sensitivity_parameters.json', 'application/json')
