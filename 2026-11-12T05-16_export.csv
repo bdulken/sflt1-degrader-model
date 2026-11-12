@@ -1,0 +1,5 @@
+Parameter,sFLT1,VEGF-A,PlGF
+Starting total concentration,10 ng/mL,100 pg/mL,100 pg/mL
+Free-species half-life,34 hours,34 minutes,16.64 hours
+Binding Kd to sFLT1,—,20 pM,150 pM
+Ligand co-degradation,— (target removed),25%,25%
