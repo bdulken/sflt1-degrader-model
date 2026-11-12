@@ -40,6 +40,7 @@ with defaults_tab:
     defaults = default_parameter_table()
     st.dataframe(defaults,hide_index=True,width='stretch')
     st.caption('Starting VEGF and PlGF totals include all binding and storage pools. Their plasma totals exclude storage: VEGF 68.83 pg/mL; PlGF 77.91 pg/mL. Kd describes ligand binding to sFLT1. Co-degradation is the fraction of bound ligand destroyed when sFLT1 is degraded; sFLT1 itself is removed.')
+    st.caption(f'Degrader defaults: {base.degrader_initial_pm:g} pM single dose; {base.degrader_destruction_probability:.0%} event destruction / {1-base.degrader_destruction_probability:.0%} recycling; background half-life {base.degrader_half_days:g} day; encounter coefficient {base.degrader_encounter_pm_day:g} pM⁻¹ day⁻¹.')
     st.download_button('Download default parameters (CSV)',defaults.to_csv(index=False),'default_parameters.csv','text/csv',key='download_default_parameters')
 
 with schematic_tab:
@@ -60,17 +61,19 @@ with sensitivity_tab:
     st.write('Separate 14-day analyses of free VEGF, free PlGF and total sFLT1, varying one parameter at a time. Production is recalibrated to initial untreated steady state for every scenario.')
     results = Path(__file__).resolve().parent / 'sensitivity_results'
     baseline_defaults = pd.read_csv(results / 'baseline_parameters.csv')
-    left = baseline_defaults.iloc[:6].reset_index(drop=True)
-    right = baseline_defaults.iloc[6:].reset_index(drop=True).rename(columns={'Parameter':'Parameter (continued)','Default':'Default (continued)'})
+    midpoint = (len(baseline_defaults)+1)//2
+    left = baseline_defaults.iloc[:midpoint].reset_index(drop=True)
+    right = baseline_defaults.iloc[midpoint:].reset_index(drop=True).rename(columns={'Parameter':'Parameter (continued)','Default':'Default (continued)'})
     st.markdown('**Baseline defaults for these saved analyses**')
     st.dataframe(pd.concat([left,right],axis=1),hide_index=True,use_container_width=True)
     st.caption('Each sensitivity varies the labeled parameter away from this reference; all other defaults remain fixed. Other-binder and storage affinities are effective assumptions.')
-    st.info('These are saved reference results using model defaults, not the current sidebar inputs. All analyses use a single dose on day 0, initial clearance 2/day, and exponential activity decay. The reference degrader half-life is 1 day except when varied. Other settings retain their defaults, including 25% co-degradation when that parameter is not being varied.')
+    st.info('These are saved reference results using model defaults, not the current sidebar inputs. All analyses use a single dose on day 0, 100 pM starting degrader and 25% event-linked degrader destruction. Background clearance and target-dependent consumption reduce activity. The reference background degrader half-life is 1 day except when varied. Consumption is 25% except in its own analysis; ligand co-degradation is independently 25% except in its own analysis.')
     results = Path(__file__).resolve().parent / 'sensitivity_results'
     for group, title, description in [
         ('vegf_half_life', 'Free VEGF half-life', '1, 4, 8 and 12 hours. Free PlGF half-life remains 16.64 hours.'),
-        ('degrader_half_life', 'Degrader half-life', '2 hours, 12 hours, 1 day, 3 days and 7 days. A single dose starts at clearance 2/day; activity decays exponentially, without redosing.'),
+        ('degrader_half_life', 'Background degrader half-life', '2 hours, 12 hours, 1 day, 3 days and 7 days. A single 100 pM dose; activity declines through background clearance and 25% event-linked destruction, without redosing.'),
         ('codegradation', 'Ligand co-degradation', '25%, 50%, 75% and 100%, changed together for VEGF and PlGF. The remaining ligand returns to the free pool.'),
+        ('degrader_consumption', 'Degrader consumption probability', '5%, 25%, 50% and 100% consumption per sFLT1 degradation event. The remaining degrader recycles immediately. Ligand co-degradation remains 25%.'),
     ]:
         st.markdown(f'### {title}')
         st.caption(description)
@@ -84,10 +87,10 @@ with sensitivity_tab:
         stem = f'{group}_total_sflt1'
         st.image(str(results / f'{stem}.png'), width='stretch')
         st.download_button('Download total sFLT1 plot (PDF)', (results / f'{stem}.pdf').read_bytes(), f'{stem}.pdf', 'application/pdf', key=f'download_{stem}')
-        if group != 'degrader_half_life':
+        if group in ['vegf_half_life','codegradation']:
             st.caption('Total sFLT1 curves overlap: with identical natural sFLT1/complex clearance and equal degrader activity on free/bound sFLT1, these ligand parameter changes do not alter total sFLT1 turnover.')
     st.caption('Axes use different vertical scales. Storage and other-binding pools are exploratory assumptions. Peaks can occur before day 14; endpoint and peak results are both reported in the summary.')
-    st.download_button('Download all nine plots (PDF)', (results / 'sensitivity_analysis_all_plots.pdf').read_bytes(), 'sensitivity_analysis_all_plots.pdf', 'application/pdf')
+    st.download_button('Download all twelve plots (PDF)', (results / 'sensitivity_analysis_all_plots.pdf').read_bytes(), 'sensitivity_analysis_all_plots.pdf', 'application/pdf')
     st.download_button('Download sensitivity summary (CSV)', (results / 'sensitivity_summary.csv').read_bytes(), 'sensitivity_summary.csv', 'text/csv')
     st.download_button('Download sensitivity time courses (CSV)', (results / 'sensitivity_time_courses.csv').read_bytes(), 'sensitivity_time_courses.csv', 'text/csv')
     st.download_button('Download sensitivity parameters (JSON)', (results / 'sensitivity_parameters.json').read_bytes(), 'sensitivity_parameters.json', 'application/json')
@@ -112,9 +115,12 @@ with model_tab:
             number('sv_half_hours','sFLT1–VEGF complex half-life (hours)',0.001)
             number('sp_half_hours','sFLT1–PlGF complex half-life (hours)',0.001)
         with st.expander('Degrader',expanded=True):
-            number('degrader_half_days','Degrader half-life (days; single dose)',0.001)
-            st.caption('One dose at treatment start. Activity decays exponentially; there is no daily redosing. The 1-day default is an adjustable reference assumption.')
-            number('degrader_per_day','Initial degrader-mediated free sFLT1 clearance (/day)')
+            number('degrader_half_days','Background degrader half-life (days)',0.001)
+            number('degrader_initial_pm','Starting degrader concentration (pM)')
+            values['degrader_destruction_probability']=st.slider('Probability degrader is destroyed per target degradation',0.,1.,float(base.degrader_destruction_probability),0.05,key='degrader_destruction_probability')
+            st.caption(f"{values['degrader_destruction_probability']:.0%} destroyed / {1-values['degrader_destruction_probability']:.0%} recycled per event. One degrader is engaged per sFLT1 removed; recycling is immediate. Background clearance is additional. One dose, no redosing.")
+            number('degrader_encounter_pm_day','Effective encounter coefficient (pM⁻¹ day⁻¹)')
+            st.caption('An independent kinetic assumption is needed to determine event frequency. No degrader binding Kd or fixed cycles/day is assumed. Initial effective target clearance equals starting degrader concentration × this coefficient.')
             values['complex_activity']=st.slider('Relative activity on bound sFLT1',0.,1.,1.,0.05,key='complex_activity')
             values['co_v']=st.slider('VEGF co-degradation fraction',0.,1.,float(base.co_v),0.05,key='co_v')
             values['co_p']=st.slider('PlGF co-degradation fraction',0.,1.,float(base.co_p),0.05,key='co_p')
@@ -181,6 +187,15 @@ with model_tab:
         initial=df[key].iloc[0]; final=df[key].iloc[-1]
         delta=f'{(final/initial-1)*100:+.2f}% from start' if initial else 'Zero starting concentration'
         col.metric(label,f'{final:.4g}',delta,delta_color='off')
+    with st.expander('Degrader availability and recycling',expanded=True):
+        chart(df.set_index('day')[['degrader_pM']].rename(columns={'degrader_pM':'Available degrader'}),'Available degrader (pM)')
+        st.markdown('**Cumulative degrader fate**')
+        chart(df.set_index('day')[['cumulative_degrader_destroyed_pM','cumulative_degrader_background_loss_pM','cumulative_degrader_recycling_events_pM']].rename(columns={
+            'cumulative_degrader_destroyed_pM':'Destroyed during target degradation',
+            'cumulative_degrader_background_loss_pM':'Lost through background clearance',
+            'cumulative_degrader_recycling_events_pM':'Recycling events',
+        }),'pM equivalent')
+        st.caption('Recycling events count repeated uses and may exceed the initial dose. Available degrader + event destruction + background loss equals the dose after administration.')
     st.caption('Default all-pools totals are 100 pg/mL for each ligand. VEGF: 6.48 free and 31.17 in each nonfree pool. PlGF: 33.73 free and 22.09 in each nonfree pool. These are model-derived allocations, not measured physiological fractions.')
     st.caption('Metrics show the final simulation day; charts compare treated and untreated trajectories.')
     st.subheader('sFLT1')
@@ -235,7 +250,7 @@ with model_tab:
     - dL/dt = qL − kL L − Rₗ + (1 − fₗ) dC Cₗ
     - dCₗ/dt = Rₗ − (kCₗ + dC)Cₗ
 
-    Here d(t) = d₀ exp[−ln(2)(t − t_start)/half-life] after the single dose at treatment start, within the treatment window; no repeated doses are given. The default half-life is 1 day. dC = d × relative complex activity, and f is the co-degradation fraction. Natural complex clearance destroys both partners. Half-life converts to rate as ln(2)/half-life.
+    An explicit available degrader pool D receives one dose at treatment start. d(t) = k_encounter D(t); dC = d(t) × relative complex activity. Total target degradation events per volume per day are E = d(t) [S + relative_activity (Cᵥ + Cₚ)]. The degrader obeys dD/dt = −k_background D − p_destroy E. A fraction 1 − p_destroy recycles immediately, so it is retained in the available pool. Each target event engages one degrader; the probability changes consumption, not the rate of that event. Background half-life is 1 day by default; event-dependent destruction makes the effective lifetime shorter. Dose is 100 pM and the encounter coefficient is 0.02 pM⁻¹ day⁻¹ by default; these are adjustable assumptions, not measured potency or affinity. The ligand co-degradation fraction f is independent of degrader consumption. Natural complex clearance destroys both partners. Half-life converts to rate as ln(2)/half-life.
 
     Initialization solves the **kinetic untreated steady state**, including complex clearance: Cₗ = S L / (Kdₗ + kCₗ/konₗ). Production is then calibrated to balance losses. This avoids drift caused by initializing at binding equilibrium while simultaneously clearing complexes. Changing half-life in recalibration mode also changes production.
 
@@ -247,7 +262,7 @@ with model_tab:
 
     For each ligand, starting plasma total includes free + sFLT1-bound + other-bound; platelet VEGF or placental PlGF storage is additional. Initialization solves competitive sFLT1 occupancy with both other-binding pools at kinetic steady state. Free-protein production balances plasma clearance minus additional storage release. Negative calibrated production produces an error. Fixed-reference and manual inputs override free-protein production only; each storage replenishment multiplier is separate.
 
-    The PDF supplies illustrative starting concentrations and clearance/affinity assumptions. Association rates of 1 pM⁻¹ day⁻¹ and molecular weights are explicit modeling assumptions. No drug concentration, dose-to-clearance relationship, tissue compartments, receptor signaling, feedback or clinical outcomes are inferred.''')
+    The PDF supplies illustrative starting concentrations and clearance/affinity assumptions. Association rates of 1 pM⁻¹ day⁻¹ and molecular weights are explicit modeling assumptions. Degrader concentration and encounter kinetics are explicit adjustable assumptions, not measured PK or binding affinity. Tissue transport, receptor signaling, feedback and clinical outcomes are not modeled.''')
     st.download_button('Download treated time course',df.to_csv(index=False),'treated.csv','text/csv')
     st.download_button('Download untreated time course',control.to_csv(index=False),'untreated.csv','text/csv')
     st.download_button('Download parameters',json.dumps({'parameters':values,'derived_metadata':meta,'production_mode':mode,'effective_production_pM_day':[meta['production_s_pM_day'],meta['production_v_pM_day'],meta['production_p_pM_day']]},indent=2),'parameters.json','application/json')

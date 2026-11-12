@@ -4,7 +4,7 @@ import numpy as np
 from model import Parameters as DefaultParameters, setup, simulate
 
 def Parameters(**kwargs):
-    return DefaultParameters(**dict(dict(degrader_half_days=1e12,vegf_pg_ml=100,plgf_pg_ml=100,platelet_vegf_pg_ml=0,other_capacity_pm=100,platelet_kon_pm_day=0,plgf_other_capacity_pm=0,placental_plgf_pg_ml=0,plgf_placental_kon_pm_day=0),**kwargs))
+    return DefaultParameters(**dict(dict(degrader_destruction_probability=0,degrader_half_days=1e12,vegf_pg_ml=100,plgf_pg_ml=100,platelet_vegf_pg_ml=0,other_capacity_pm=100,platelet_kon_pm_day=0,plgf_other_capacity_pm=0,placental_plgf_pg_ml=0,plgf_placental_kon_pm_day=0),**kwargs))
 
 class ModelTests(unittest.TestCase):
     def test_untreated_is_steady_with_independent_complex_clearance(self):
@@ -17,7 +17,7 @@ class ModelTests(unittest.TestCase):
         p=Parameters()
         df,_=simulate(p)
         ks=np.log(2)*24/p.sflt1_half_hours
-        expected=p.sflt1_ng_ml*(ks/(ks+p.degrader_per_day)+p.degrader_per_day/(ks+p.degrader_per_day)*np.exp(-(ks+p.degrader_per_day)*df.day))
+        expected=p.sflt1_ng_ml*(ks/(ks+(p.degrader_initial_pm*p.degrader_encounter_pm_day))+(p.degrader_initial_pm*p.degrader_encounter_pm_day)/(ks+(p.degrader_initial_pm*p.degrader_encounter_pm_day))*np.exp(-(ks+(p.degrader_initial_pm*p.degrader_encounter_pm_day))*df.day))
         np.testing.assert_allclose(df.total_sflt1_ng_mL,expected,rtol=2e-6)
 
     def test_release_conserves_ligand_when_natural_losses_vanish(self):
@@ -32,7 +32,7 @@ class ModelTests(unittest.TestCase):
         np.testing.assert_allclose(df.loc[df.day<=3,'total_sflt1_ng_mL'],10,rtol=1e-6)
         self.assertGreater(df.total_sflt1_ng_mL.iloc[-1],df.loc[df.day==5,'total_sflt1_ng_mL'].iloc[0])
         empty,_=simulate(Parameters(sflt1_ng_ml=0,vegf_pg_ml=0,plgf_pg_ml=0))
-        self.assertEqual(empty.drop(columns='day').to_numpy().max(),0)
+        self.assertEqual(empty[['free_vegf_pg_mL','free_plgf_pg_mL','total_sflt1_ng_mL']].to_numpy().max(),0)
 
     def test_full_codegradation_mass_balance(self):
         p=Parameters(other_complex_half_hours=1e12,vegf_half_hours=1e12,plgf_half_hours=1e12,sv_half_hours=1e12,sp_half_hours=1e12)

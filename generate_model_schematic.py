@@ -60,17 +60,17 @@ for center,ligand,label,color in [(4,'vegf','VEGF-A',blue),(12,'plgf','PlGF',gre
 # Red arrows denote effective degradation activity, not mass transfer or
 # an explicit degrader-binding state (no degrader Kd is assumed).
 box(8,7.05,3.5,.8,'sFLT1 DEGRADER',
-    'Single dose; activity decays with time',red,'#fff2f1')
+    f'{p.degrader_initial_pm:g} pM dose; available pool D',red,'#fff2f1')
 arrow((8,7.50),(8,8.45),red)
 text(8.15,7.98,'d(t) · S',9,red,ha='left')
 arrow((6.20,7.05),(5.38,7.05),red)
 text(5.80,7.36,'dC(t) · C',8.5,red)
 arrow((9.80,7.05),(10.62,7.05),red)
 text(10.20,7.36,'dC(t) · C',8.5,red)
-text(8,6.32,'Red arrows: direct degrader action\nsFLT1 eliminated in all three forms',8.8,red)
+text(8,6.32,'d(t) = k_encounter · D(t)\nD loss = background + consumption · events',8.1,red)
 
-box(8,3.42,15.15,.98,'LIGAND FATE DURING COMPLEX DEGRADATION',
-    f'{p.co_v:.0%} of VEGF and {p.co_p:.0%} of PlGF are co-degraded; the remaining ligand returns to its free pool. Free sFLT1 removal carries no ligand.',red,'#fff2f1')
+box(8,3.42,15.15,.98,'DEGRADER AND LIGAND FATE PER TARGET DEGRADATION EVENT',
+    f'Degrader: {p.degrader_destruction_probability:.0%} destroyed / {1-p.degrader_destruction_probability:.0%} recycled. Bound ligand: {p.co_v:.0%} VEGF and {p.co_p:.0%} PlGF co-degraded; the remainder returns free.',red,'#fff2f1')
 text(8,2.62,'dC(t) = d(t) × relative activity on bound sFLT1   |   Other-bound and storage pools have no direct degrader clearance.',10,red)
 
 # Compact parameter summary, generated rather than copied from past results.
@@ -86,7 +86,7 @@ for (i,j),cell in table.get_celld().items():
     if i==0:cell.set_text_props(weight='bold',color=ink)
 text(10.55,2.18,'NATURAL LOSS & INPUTS',10,weight='bold',ha='left')
 text(10.55,1.65,'Every state has first-order natural loss.\nComplex loss destroys ligand; other-site capacity is maintained.\nqS, qL and qT continue throughout treatment.\nStorage also releases at rT (default zero).',8.7,ha='left')
-text(10.55,.94,'Production is calibrated to initial untreated steady state.\nSingle dose day 0: initial 2/day, half-life 1 day.\nStorage and affinity are effective assumptions.',8.7,ha='left')
+text(10.55,.94,'Production is calibrated to initial untreated steady state.\nSingle 100 pM dose; background half-life 1 day.\nRecycling is immediate; storage kinetics are assumptions.',8.7,ha='left')
 text(.3,.3,'Plasma total = L + C + O; all pools = L + C + O + T.  Independent O/T sites for each ligand; only sFLT1 is shared.',9,muted,ha='left')
 text(.3,.02,'Exploratory model, not a validated physiological or assay prediction.  Source: model.py defaults; regeneration script: generate_model_schematic.py.',8,muted,ha='left')
 fig.savefig(OUT/'model_schematic.pdf',metadata={'Title':'sFLT1 degrader model schematic','Subject':'VEGF and PlGF binding, platelet VEGF / placental PlGF storage and co-degradation'})

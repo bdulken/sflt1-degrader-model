@@ -23,7 +23,9 @@ class Parameters:
     kon_v_pm_day: float = 1
     kon_p_pm_day: float = 1
     degrader_half_days: float = 1
-    degrader_per_day: float = 2
+    degrader_initial_pm: float = 100
+    degrader_destruction_probability: float = 0.25
+    degrader_encounter_pm_day: float = 0.02
     complex_activity: float = 1
     co_v: float = 0.25
     co_p: float = 0.25
@@ -63,7 +65,7 @@ class Parameters:
         positive=['sflt1_mw_kda','vegf_mw_kda','plgf_mw_kda','sflt1_half_hours','vegf_half_hours','plgf_half_hours','sv_half_hours','sp_half_hours','kd_v_pm','kd_p_pm','kon_v_pm_day','kon_p_pm_day','days','other_kd_pm','other_kon_pm_day','other_complex_half_hours','platelet_half_hours','platelet_kd_pm','plgf_other_kd_pm','plgf_other_kon_pm_day','plgf_other_complex_half_hours','plgf_placental_kd_pm','plgf_placental_half_hours','degrader_half_days']
         if any(d[k]<=0 for k in positive) or any(v<0 for v in d.values()):
             raise ValueError('Rates/concentrations must be nonnegative; half-lives, affinities, association rates, molecular weights and duration must be positive.')
-        if any(d[k]>1 for k in ['co_v','co_p','complex_activity']):
+        if any(d[k]>1 for k in ['co_v','co_p','complex_activity','degrader_destruction_probability']):
             raise ValueError('Fractions must be between zero and one.')
         if self.stop_day<self.start_day:
             raise ValueError('Treatment stop must be at or after treatment start.')
@@ -114,7 +116,7 @@ def simulate(p=None, production=None, treated=True, degrader_half_days=_DEFAULT_
     if degrader_half_days is _DEFAULT_EXPOSURE:
         degrader_half_days=p.degrader_half_days
     if degrader_half_days is not None and (not np.isfinite(degrader_half_days) or degrader_half_days<=0):
-        raise ValueError('Degrader half-life must be finite and positive, or None for constant exposure.')
+        raise ValueError('Degrader half-life must be finite and positive, or None to disable background degrader clearance.')
     y0,q,rates=setup(p)
     if production is not None:
         q=np.asarray(production,dtype=float)
@@ -130,9 +132,10 @@ def simulate(p=None, production=None, treated=True, degrader_half_days=_DEFAULT_
     initial_exchange=pools['storage_kon']*((storage_capacity-pools['stored'])*free0-pools['storage_kd']*pools['stored'])
     qt=((pools['storage_clear']+pools['release'])*pools['stored']-initial_exchange)*pools['replenish']
     co=np.array([p.co_v,p.co_p])
-    def rhs(t,y,d):
-        if degrader_half_days is not None:
-            d=d*np.exp(-np.log(2)*max(0.,t-p.start_day)/degrader_half_days)
+    kel=np.log(2)/degrader_half_days if degrader_half_days is not None else 0.
+    def rhs(t,y,active):
+        degrader=y[11]
+        d=p.degrader_encounter_pm_day*degrader if active else 0.
         s=y[0]; free=y[1:3]; complexes=y[3:5]
         other=y[[5,7]]; stored=y[[6,8]]
         ro=pools['other_kon']*((pools['capacity']-other)*free-pools['other_kd']*other)
@@ -144,13 +147,23 @@ def simulate(p=None, production=None, treated=True, degrader_half_days=_DEFAULT_
         d_complex=binding-(np.array([kcv,kcp])+dc)*complexes
         d_other=ro-pools['other_clear']*other
         d_stored=qt-(pools['storage_clear']+pools['release'])*stored+exchange
-        return np.r_[q[0]-(ks+d)*s-binding.sum(),d_free,d_complex,d_other[0],d_stored[0],d_other[1],d_stored[1],co*dc*complexes]
+        events=d*(s+p.complex_activity*complexes.sum())
+        destroyed=p.degrader_destruction_probability*events
+        recycled=(1-p.degrader_destruction_probability)*events
+        background=kel*degrader
+        return np.r_[q[0]-(ks+d)*s-binding.sum(),d_free,d_complex,d_other[0],d_stored[0],d_other[1],d_stored[1],co*dc*complexes,
+                     -background-destroyed,destroyed,background,events,recycled]
     cuts=sorted(set([0.,p.days]+[x for x in [p.start_day,p.stop_day] if 0<x<p.days]))
     grid=np.unique(np.r_[np.linspace(0,p.days,701),cuts])
-    state=np.r_[y0,0.,0.]; ts=[]; ys=[]
+    # Indices 9/10: co-degraded ligands; 11: available degrader; 12/13:
+    # event/background degrader loss; 14/15: target events/recycling events.
+    state=np.r_[y0,np.zeros(7)]; ts=[]; ys=[]
     for a,b in zip(cuts[:-1],cuts[1:]):
-        d=p.degrader_per_day if treated and p.start_day <= (a+b)/2 < p.stop_day else 0.
-        sol=solve_ivp(lambda t,y:rhs(t,y,d),(a,b),state,method='BDF',rtol=1e-8,atol=1e-10,dense_output=True)
+        active=treated and p.start_day <= (a+b)/2 < p.stop_day
+        if treated and a==p.start_day and p.start_day<p.stop_day:
+            state[11]+=p.degrader_initial_pm
+            if ys: ys[-1]=state.copy()  # Report the post-dose state at the dose time.
+        sol=solve_ivp(lambda t,y:rhs(t,y,active),(a,b),state,method='BDF',rtol=1e-8,atol=1e-10,dense_output=True)
         if not sol.success: raise RuntimeError(sol.message)
         t=grid[(grid>=a)&(grid<=b)]
         if ts: t=t[t>a]
@@ -165,13 +178,23 @@ def simulate(p=None, production=None, treated=True, degrader_half_days=_DEFAULT_
         for label,value in [('free',free),('total',free+bound+other),('bound',bound),('other_bound',other),('platelet' if i==0 else 'placental',stored),('all_pools',free+bound+other+stored),('cumulative',raw[:,9+i])]:
             key=f'cumulative_{name}_codegraded_pg_mL' if label=='cumulative' else f'{label}_{name}_pg_mL'
             columns[key]=value*mw
+    columns.update(
+        degrader_pM=raw[:,11],
+        cumulative_degrader_destroyed_pM=raw[:,12],
+        cumulative_degrader_background_loss_pM=raw[:,13],
+        cumulative_target_degradation_pM=raw[:,14],
+        cumulative_degrader_recycling_events_pM=raw[:,15],
+        degrader_clearance_per_day=np.where(treated & (np.array(ts)>=p.start_day) & (np.array(ts)<p.stop_day),p.degrader_encounter_pm_day*raw[:,11],0.),
+    )
     df=pd.DataFrame(columns)
-    meta={**asdict(p),'production_s_pM_day':q[0],'production_v_pM_day':q[1],'production_p_pM_day':q[2],
+    meta={**asdict(p),'initial_degrader_clearance_per_day':p.degrader_initial_pm*p.degrader_encounter_pm_day,'production_s_pM_day':q[0],'production_v_pM_day':q[1],'production_p_pM_day':q[2],
           'platelet_production_pM_day':qt[0],'platelet_effective_capacity_pM':storage_capacity[0],
           'degrader_half_days':degrader_half_days,'plgf_placental_production_pM_day':qt[1],'plgf_placental_effective_capacity_pM':storage_capacity[1]}
     return df,meta
 
-def model(kdeg=2,kv=None,co=0.25,**kwargs):
+def model(kdeg=None,kv=None,co=0.25,**kwargs):
     """Compatibility entry point for vegf_half_life_sensitivity.py."""
     if kv is not None: kwargs['vegf_half_hours']=np.log(2)*24/kv
-    return simulate(Parameters(degrader_per_day=kdeg,co_v=co,co_p=co,**kwargs))
+    if kdeg is not None:
+        kwargs['degrader_encounter_pm_day']=kdeg/kwargs.get('degrader_initial_pm',100)
+    return simulate(Parameters(co_v=co,co_p=co,**kwargs))

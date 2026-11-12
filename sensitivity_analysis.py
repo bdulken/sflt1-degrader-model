@@ -1,4 +1,4 @@
-"""One-at-a-time VEGF/PlGF sensitivity analyses with nine separate figures.
+"""One-at-a-time VEGF/PlGF sensitivity analyses with twelve separate figures.
 
 Run: MPLCONFIGDIR=.mplconfig .venv/bin/python sensitivity_analysis.py
 """
@@ -17,11 +17,13 @@ OUT=Path(__file__).resolve().parent/'sensitivity_results'
 BASE=Parameters()
 GROUPS=[
     ('vegf_half_life','Free VEGF half-life',[(f'{h} hour'+('s' if h!=1 else ''),dict(vegf_half_hours=h),BASE.degrader_half_days) for h in [1,4,8,12]],
-     'Single dose: initial clearance 2/day, degrader half-life 1 day; 25% co-degradation'),
-    ('degrader_half_life','Degrader half-life',[('2 hours',{},2/24),('12 hours',{},12/24)]+[(f'{h} day'+('s' if h!=1 else ''),{},h) for h in [1,3,7]],
-     'Single dose: initial clearance 2/day, exponentially decaying; 25% co-degradation'),
+     'Single dose: 100 pM degrader, 25% destruction/event; background half-life 1 day; 25% co-degradation'),
+    ('degrader_half_life','Background degrader half-life',[('2 hours',{},2/24),('12 hours',{},12/24)]+[(f'{h} day'+('s' if h!=1 else ''),{},h) for h in [1,3,7]],
+     'Single dose: 100 pM degrader, 25% destruction/event; variable background half-life; 25% co-degradation'),
     ('codegradation','Ligand co-degradation',[(f'{int(f*100)}%',dict(co_v=f,co_p=f),BASE.degrader_half_days) for f in [.25,.5,.75,1.0]],
-     'Same fraction for VEGF and PlGF; single dose, initial clearance 2/day, half-life 1 day'),
+     'Same fraction for VEGF and PlGF; 100 pM degrader, 25% destruction/event; background half-life 1 day'),
+    ('degrader_consumption','Degrader consumption probability',[(f'{int(f*100)}%',dict(degrader_destruction_probability=f),BASE.degrader_half_days) for f in [.05,.25,.5,1.0]],
+     'Consumption per target event; 100 pM single dose; 1-day background half-life; 25% ligand co-degradation'),
 ]
 COLORS=['#176b99','#d17b18','#287961','#884da0','#c14465']
 
@@ -32,8 +34,10 @@ def main():
     b=baseline.iloc[0]
     baseline_rows=[
         ('Dose / duration','Single dose day 0 / 14 days'),
-        ('Initial degrader clearance',f'{BASE.degrader_per_day:g}/day'),
-        ('Degrader half-life',f'{BASE.degrader_half_days:g} day'+('s' if BASE.degrader_half_days!=1 else '')),
+        ('Starting degrader concentration',f'{BASE.degrader_initial_pm:g} pM'),
+        ('Degrader destruction / recycling',f'{BASE.degrader_destruction_probability:.0%} / {1-BASE.degrader_destruction_probability:.0%}'),
+        ('Degrader encounter coefficient',f'{BASE.degrader_encounter_pm_day:g} pM⁻¹ day⁻¹'),
+        ('Background degrader half-life',f'{BASE.degrader_half_days:g} day'+('s' if BASE.degrader_half_days!=1 else '')),
         ('Co-degradation: VEGF / PlGF',f'{BASE.co_v:.0%} / {BASE.co_p:.0%}'),
         ('Free VEGF / PlGF half-life',f'{BASE.vegf_half_hours*60:.0f} min / {BASE.plgf_half_hours:.2f} h'),
         ('Initial total sFLT1',f'{BASE.sflt1_ng_ml:g} ng/mL'),
@@ -64,7 +68,6 @@ def main():
                 export['untreated_total_sflt1_ng_mL']=control.total_sflt1_ng_mL.to_numpy()
                 export['untreated_free_vegf_pg_mL']=control.free_vegf_pg_mL.to_numpy()
                 export['untreated_free_plgf_pg_mL']=control.free_plgf_pg_mL.to_numpy()
-                export['degrader_clearance_per_day']=p.degrader_per_day*(np.exp(-np.log(2)*df.day/half) if half else np.ones(len(df)))
                 all_data.append(export)
                 scenario_meta.append(dict(analysis=group,scenario=label,parameters=asdict(p),derived=meta))
                 scenarios.append((label,df,control))
@@ -83,7 +86,7 @@ def main():
                 ax.set(xlabel='Time after treatment starts (days)',ylabel=f'{label} ({unit})',xlim=(0,BASE.days))
                 fig.suptitle(f'{label}: sensitivity to {title}',fontsize=15,fontweight='bold')
                 ax.text(.5,1.025,note,transform=ax.transAxes,ha='center',fontsize=9,color='#516478')
-                if ligand=='sflt1' and group!='degrader_half_life':
+                if ligand=='sflt1' and group in ['vegf_half_life','codegradation']:
                     ax.text(.02,.04,'Scenario curves overlap: total sFLT1 turnover is unchanged by these ligand parameters.',transform=ax.transAxes,fontsize=8,color='#516478',bbox=dict(facecolor='white',edgecolor='none',alpha=.8))
                 ax.grid(alpha=.2);ax.legend(loc='best',framealpha=.95)
                 ax.ticklabel_format(axis='y',style='plain',useOffset=False)
@@ -98,13 +101,14 @@ def main():
     (OUT/'sensitivity_parameters.json').write_text(json.dumps(scenario_meta,indent=2))
     (OUT/'README.md').write_text('''# Sensitivity results
 
-Nine separate plots (PNG and vector PDF), including total sFLT1 for each analysis, and a combined nine-page PDF. Individual plots have no parameter tables. The sensitivity tab retains one baseline-default table at the beginning (also exported as baseline_parameters.csv). The parameter being varied supersedes its baseline value in each scenario.
+Twelve separate plots (PNG and vector PDF), including total sFLT1 for each analysis, and a combined twelve-page PDF. Individual plots have no parameter tables. The sensitivity tab retains one baseline-default table at the beginning (also exported as baseline_parameters.csv). The parameter being varied supersedes its baseline value in each scenario.
 
 - Free VEGF half-life: 1, 4, 8, 12 hours. PlGF free half-life stays at its default (16.64 hours).
-- Degrader half-life: 2 hours, 12 hours, 1 day, 3 days, 7 days, with single-dose initial effective clearance of 2/day. Effective clearance decays as 2*exp(-ln(2)*t/half-life). No redosing. This assumes activity is proportional to exposure, not a saturable PK/PD model.
+- Degrader half-life: 2 hours, 12 hours, 1 day, 3 days, 7 days, for background degrader clearance. One dose of 100 pM is given, with 25% event-linked destruction and 75% recycling. Activity equals the encounter coefficient times available degrader, which decreases through both background clearance and target-dependent consumption. No redosing or explicit affinity is assumed.
+- Degrader consumption probability: 5%, 25%, 50%, 100%, with recycling probability = 1 minus consumption. This is independent of ligand co-degradation.
 - Co-degradation fraction: 25%, 50%, 75%, 100%, changed together for both ligands. The remainder returns to free ligand.
 
-These are separate one-at-a-time analyses, not a full factorial combination. All analyses use a single dose on day 0 with initial clearance 2/day and exponential decay. Degrader half-life is 1 day in the VEGF-half-life and co-degradation analyses. Both ligand co-degradation fractions stay at 25% in the other analyses. Free VEGF half-life stays at 34 minutes except in its own analysis. Treatment begins on day 0; simulation and treatment windows end at day 14.
+These are separate one-at-a-time analyses, not a full factorial combination. All analyses use a single dose on day 0 with 100 pM starting degrader, 25% destruction per target event, 75% immediate recycling and background clearance. Background degrader half-life is 1 day in the VEGF-half-life and co-degradation analyses. Both ligand co-degradation fractions stay at 25% in the other analyses. Free VEGF half-life stays at 34 minutes except in its own analysis. Treatment begins on day 0; simulation and treatment windows end at day 14.
 
 For each scenario, production is recalibrated to the initial untreated kinetic steady state, then kept fixed throughout the simulation. Initial distributions, other binding, platelet VEGF storage and placental PlGF storage retain their current default values. Untreated curves coincide across scenarios and are shown as a single dashed baseline. Production differs across VEGF-half-life scenarios; this is not a fixed-production comparison.
 
@@ -113,6 +117,6 @@ Summary CSV reports ligand day-14 and peak concentrations with peak timing, plus
 Regenerate from the project folder: `MPLCONFIGDIR=.mplconfig .venv/bin/python sensitivity_analysis.py` (requires requirements-dev.txt).
 ''')
     print(pd.DataFrame(summary)[['analysis','scenario','ligand','day14_pg_mL','day14_percent_change','peak_pg_mL','peak_day']].round(4).to_string(index=False))
-    print(f'\nSaved nine plots, combined PDF, CSVs and parameters to {OUT}')
+    print(f'\nSaved twelve plots, combined PDF, CSVs and parameters to {OUT}')
 
 if __name__=='__main__': main()
