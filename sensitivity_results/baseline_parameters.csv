@@ -9,5 +9,5 @@ Initial free VEGF / PlGF,6.48 / 33.73 pg/mL
 All-pools VEGF / PlGF,100 / 100 pg/mL
 sFLT1 / complex half-life,34 / 34 h
 Kd: VEGF / PlGF (all pools),20 / 150 pM
-Other-bound / platelet loss half-life,34 / 168 h
+Other-bound / storage loss half-life,34 / 168 h
 Production,Recalibrate untreated steady state

@@ -40,7 +40,7 @@ for center,ligand,label,color in [(4,'vegf','VEGF-A',blue),(12,'plgf','PlGF',gre
     box(center,7.05,2.65,.78,f'sFLT1–{label}  [C]', 'Natural clearance kC  |  degrader dC',color=color)
     box(center,5.2,2.05,.88,f'Free {label}  [L]', 'Available to bind sFLT1',color=color)
     box(center-2.65,5.2,2.05,.88,'Other-bound  [O]','Independent binding-site pool',color=color)
-    box(center+2.65,5.2,2.05,.88,'Platelet-stored  [T]','Inaccessible while stored',color=color)
+    box(center+2.65,5.2,2.05,.88,('Platelet-stored  [T]' if ligand=='vegf' else 'Placental-stored  [T]'),'Inaccessible while stored',color=color)
     arrow((center,5.69),(center,6.60),color,both=True)
     text(center+.16,6.14,'kon · S · L\nkoff · C',8.6,color,ha='left')
     arrow((center-1.05,5.2),(center-1.58,5.2),color,both=True)
@@ -59,14 +59,14 @@ for center,ligand,label,color in [(4,'vegf','VEGF-A',blue),(12,'plgf','PlGF',gre
 # A single shared fate panel applies identically to both ligand complexes.
 box(8,3.42,15.15,.98,'DEGRADER: removes free sFLT1 and sFLT1–ligand complexes',
     'From each complex: sFLT1 is eliminated; 25% of ligand is co-degraded and 75% returns to free ligand (current defaults).',red,'#fff2f1')
-text(8,2.62,'dC = d × relative activity on bound sFLT1   |   Other-bound and platelet pools have no direct degrader clearance.',10,red)
+text(8,2.62,'dC = d × relative activity on bound sFLT1   |   Other-bound and storage pools have no direct degrader clearance.',10,red)
 
 # Compact parameter summary, generated rather than copied from past results.
 rows=[['Starting concentration (pg/mL)','VEGF-A','PlGF'],
       ['Free plasma',f'{r.free_vegf_pg_mL:.2f}',f'{r.free_plgf_pg_mL:.2f}'],
-      ['sFLT1-bound / other-bound / platelet (each)',f'{r.bound_vegf_pg_mL:.2f}',f'{r.bound_plgf_pg_mL:.2f}'],
+      ['sFLT1-bound / other-bound / stored (each)',f'{r.bound_vegf_pg_mL:.2f}',f'{r.bound_plgf_pg_mL:.2f}'],
       ['Plasma total / all-pools total',f'{r.total_vegf_pg_mL:.2f} / {r.all_pools_vegf_pg_mL:.2f}',f'{r.total_plgf_pg_mL:.2f} / {r.all_pools_plgf_pg_mL:.2f}'],
-      ['Kd: sFLT1 / other / effective platelet (pM)',f'{p.kd_v_pm:g} / {p.other_kd_pm:g} / {p.platelet_kd_pm:g}',f'{p.kd_p_pm:g} / {p.plgf_other_kd_pm:g} / {p.plgf_platelet_kd_pm:g}']]
+      ['Kd: sFLT1 / other / effective storage (pM)',f'{p.kd_v_pm:g} / {p.other_kd_pm:g} / {p.platelet_kd_pm:g}',f'{p.kd_p_pm:g} / {p.plgf_other_kd_pm:g} / {p.plgf_placental_kd_pm:g}']]
 table=ax.table(cellText=rows,cellLoc='left',colWidths=[.34,.14,.14],bbox=[.015,.068,.62,.152])
 table.auto_set_font_size(False);table.set_fontsize(8.7)
 for (i,j),cell in table.get_celld().items():
@@ -74,10 +74,10 @@ for (i,j),cell in table.get_celld().items():
     if i==0:cell.set_text_props(weight='bold',color=ink)
 text(10.55,2.18,'NATURAL LOSS & INPUTS',10,weight='bold',ha='left')
 text(10.55,1.65,'Every state has first-order natural loss.\nComplex loss destroys ligand; other-site capacity is maintained.\nqS, qL and qT continue throughout treatment.',8.7,ha='left')
-text(10.55,.94,'Production is calibrated to initial untreated steady state.\nSingle dose day 0: initial 2/day, half-life 3 days.\nPlatelet storage and affinity are effective assumptions.',8.7,ha='left')
+text(10.55,.94,'Production is calibrated to initial untreated steady state.\nSingle dose day 0: initial 2/day, half-life 3 days.\nStorage and affinity are effective assumptions.',8.7,ha='left')
 text(.3,.3,'Plasma total = L + C + O; all pools = L + C + O + T.  Independent O/T sites for each ligand; only sFLT1 is shared.',9,muted,ha='left')
 text(.3,.02,'Exploratory model, not a validated physiological or assay prediction.  Source: model.py defaults; regeneration script: generate_model_schematic.py.',8,muted,ha='left')
-fig.savefig(OUT/'model_schematic.pdf',metadata={'Title':'sFLT1 degrader model schematic','Subject':'VEGF and PlGF binding, platelet storage and co-degradation'})
+fig.savefig(OUT/'model_schematic.pdf',metadata={'Title':'sFLT1 degrader model schematic','Subject':'VEGF and PlGF binding, platelet VEGF / placental PlGF storage and co-degradation'})
 fig.savefig(OUT/'model_schematic.png',dpi=150)
 plt.close(fig)
 print(OUT/'model_schematic.pdf')

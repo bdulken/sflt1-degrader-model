@@ -4,7 +4,7 @@ import numpy as np
 from model import Parameters as DefaultParameters, setup, simulate
 
 def Parameters(**kwargs):
-    return DefaultParameters(**dict(dict(degrader_half_days=1e12,vegf_pg_ml=100,plgf_pg_ml=100,platelet_vegf_pg_ml=0,other_capacity_pm=100,platelet_kon_pm_day=0,plgf_other_capacity_pm=0,platelet_plgf_pg_ml=0,plgf_platelet_kon_pm_day=0),**kwargs))
+    return DefaultParameters(**dict(dict(degrader_half_days=1e12,vegf_pg_ml=100,plgf_pg_ml=100,platelet_vegf_pg_ml=0,other_capacity_pm=100,platelet_kon_pm_day=0,plgf_other_capacity_pm=0,placental_plgf_pg_ml=0,plgf_placental_kon_pm_day=0),**kwargs))
 
 class ModelTests(unittest.TestCase):
     def test_untreated_is_steady_with_independent_complex_clearance(self):
@@ -81,7 +81,7 @@ class DefaultAllocationTests(unittest.TestCase):
         np.testing.assert_allclose([first.bound_vegf_pg_mL,first.other_bound_vegf_pg_mL,first.platelet_vegf_pg_mL],31.17339717903927,rtol=1e-7)
         self.assertAlmostEqual(first.all_pools_vegf_pg_mL,100)
         self.assertAlmostEqual(first.free_vegf_pg_mL,6.479808462882173)
-        for col in ['free_vegf_pg_mL','platelet_vegf_pg_mL','other_bound_vegf_pg_mL','free_plgf_pg_mL','platelet_plgf_pg_mL','other_bound_plgf_pg_mL']:
+        for col in ['free_vegf_pg_mL','platelet_vegf_pg_mL','other_bound_vegf_pg_mL','free_plgf_pg_mL','placental_plgf_pg_mL','other_bound_plgf_pg_mL']:
             np.testing.assert_allclose(df[col],first[col],rtol=1e-6)
 
     def test_exchange_conserves_mass(self):
@@ -94,12 +94,12 @@ class PlgfPoolTests(unittest.TestCase):
     def test_default_allocation(self):
         df,_=simulate(DefaultParameters(),treated=False)
         first=df.iloc[0]
-        np.testing.assert_allclose([first.bound_plgf_pg_mL,first.other_bound_plgf_pg_mL,first.platelet_plgf_pg_mL],22.091093341564427,rtol=1e-7)
+        np.testing.assert_allclose([first.bound_plgf_pg_mL,first.other_bound_plgf_pg_mL,first.placental_plgf_pg_mL],22.091093341564427,rtol=1e-7)
         self.assertAlmostEqual(first.all_pools_plgf_pg_mL,100)
         self.assertAlmostEqual(first.free_plgf_pg_mL,33.726719975306715)
 
     def test_both_ligands_mass_balance_with_release_and_exchange(self):
-        p=DefaultParameters(vegf_half_hours=1e12,plgf_half_hours=1e12,sv_half_hours=1e12,sp_half_hours=1e12,other_complex_half_hours=1e12,plgf_other_complex_half_hours=1e12,platelet_half_hours=1e12,plgf_platelet_half_hours=1e12,platelet_input_multiplier=0,plgf_platelet_input_multiplier=0,platelet_release_per_day=0.2,plgf_platelet_release_per_day=0.3)
+        p=DefaultParameters(vegf_half_hours=1e12,plgf_half_hours=1e12,sv_half_hours=1e12,sp_half_hours=1e12,other_complex_half_hours=1e12,plgf_other_complex_half_hours=1e12,platelet_half_hours=1e12,plgf_placental_half_hours=1e12,platelet_input_multiplier=0,plgf_placental_input_multiplier=0,platelet_release_per_day=0.2,plgf_placental_release_per_day=0.3)
         df,_=simulate(p,production=[0,0,0])
         for ligand in ['vegf','plgf']:
             total=df[f'all_pools_{ligand}_pg_mL']
@@ -108,4 +108,4 @@ class PlgfPoolTests(unittest.TestCase):
 
     def test_plgf_calibration_rejects_negative_input(self):
         with self.assertRaisesRegex(ValueError,'negative PlGF production'):
-            simulate(DefaultParameters(platelet_plgf_pg_ml=10000,plgf_platelet_release_per_day=10))
+            simulate(DefaultParameters(placental_plgf_pg_ml=10000,plgf_placental_release_per_day=10))

@@ -1,4 +1,4 @@
-"""Circulating sFLT1 model with optional alternative-binding and platelet pools for VEGF and PlGF. Concentrations: pM; time: days."""
+"""Circulating sFLT1 model with optional alternative-binding and platelet VEGF and placental PlGF storage pools. Concentrations: pM; time: days."""
 from dataclasses import dataclass, asdict
 import numpy as np
 import pandas as pd
@@ -49,18 +49,18 @@ class Parameters:
     plgf_other_kd_pm: float = 150
     plgf_other_kon_pm_day: float = 1
     plgf_other_complex_half_hours: float = 34
-    platelet_plgf_pg_ml: float = 22.091093341564427
-    plgf_platelet_kd_pm: float = 150
-    plgf_platelet_kon_pm_day: float = 1
-    plgf_platelet_release_per_day: float = 0
-    plgf_platelet_half_hours: float = 168
-    plgf_platelet_input_multiplier: float = 1
+    placental_plgf_pg_ml: float = 22.091093341564427
+    plgf_placental_kd_pm: float = 150
+    plgf_placental_kon_pm_day: float = 1
+    plgf_placental_release_per_day: float = 0
+    plgf_placental_half_hours: float = 168
+    plgf_placental_input_multiplier: float = 1
 
     def validate(self):
         d=asdict(self)
         if not all(np.isfinite(v) for v in d.values()):
             raise ValueError('All parameters must be finite.')
-        positive=['sflt1_mw_kda','vegf_mw_kda','plgf_mw_kda','sflt1_half_hours','vegf_half_hours','plgf_half_hours','sv_half_hours','sp_half_hours','kd_v_pm','kd_p_pm','kon_v_pm_day','kon_p_pm_day','days','other_kd_pm','other_kon_pm_day','other_complex_half_hours','platelet_half_hours','platelet_kd_pm','plgf_other_kd_pm','plgf_other_kon_pm_day','plgf_other_complex_half_hours','plgf_platelet_kd_pm','plgf_platelet_half_hours','degrader_half_days']
+        positive=['sflt1_mw_kda','vegf_mw_kda','plgf_mw_kda','sflt1_half_hours','vegf_half_hours','plgf_half_hours','sv_half_hours','sp_half_hours','kd_v_pm','kd_p_pm','kon_v_pm_day','kon_p_pm_day','days','other_kd_pm','other_kon_pm_day','other_complex_half_hours','platelet_half_hours','platelet_kd_pm','plgf_other_kd_pm','plgf_other_kon_pm_day','plgf_other_complex_half_hours','plgf_placental_kd_pm','plgf_placental_half_hours','degrader_half_days']
         if any(d[k]<=0 for k in positive) or any(v<0 for v in d.values()):
             raise ValueError('Rates/concentrations must be nonnegative; half-lives, affinities, association rates, molecular weights and duration must be positive.')
         if any(d[k]>1 for k in ['co_v','co_p','complex_activity']):
@@ -79,12 +79,12 @@ def pool_parameters(p):
         other_kd=np.array([p.other_kd_pm,p.plgf_other_kd_pm]),
         other_kon=np.array([p.other_kon_pm_day,p.plgf_other_kon_pm_day]),
         other_clear=np.log(2)*24/np.array([p.other_complex_half_hours,p.plgf_other_complex_half_hours]),
-        stored=np.array([p.platelet_vegf_pg_ml/p.vegf_mw_kda,p.platelet_plgf_pg_ml/p.plgf_mw_kda]),
-        storage_kd=np.array([p.platelet_kd_pm,p.plgf_platelet_kd_pm]),
-        storage_kon=np.array([p.platelet_kon_pm_day,p.plgf_platelet_kon_pm_day]),
-        release=np.array([p.platelet_release_per_day,p.plgf_platelet_release_per_day]),
-        storage_clear=np.log(2)*24/np.array([p.platelet_half_hours,p.plgf_platelet_half_hours]),
-        replenish=np.array([p.platelet_input_multiplier,p.plgf_platelet_input_multiplier]),
+        stored=np.array([p.platelet_vegf_pg_ml/p.vegf_mw_kda,p.placental_plgf_pg_ml/p.plgf_mw_kda]),
+        storage_kd=np.array([p.platelet_kd_pm,p.plgf_placental_kd_pm]),
+        storage_kon=np.array([p.platelet_kon_pm_day,p.plgf_placental_kon_pm_day]),
+        release=np.array([p.platelet_release_per_day,p.plgf_placental_release_per_day]),
+        storage_clear=np.log(2)*24/np.array([p.platelet_half_hours,p.plgf_placental_half_hours]),
+        replenish=np.array([p.platelet_input_multiplier,p.plgf_placental_input_multiplier]),
     )
 
 def setup(p):
@@ -121,7 +121,7 @@ def simulate(p=None, production=None, treated=True, degrader_half_days=_DEFAULT_
         if q.shape!=(3,) or not np.isfinite(q).all() or (q<0).any():
             raise ValueError('Production must contain three finite nonnegative pM/day values.')
     elif (q[1:] < -1e-10).any():
-        raise ValueError('Platelet release exceeds the ligand loss supported by the selected starting plasma totals. Reduce platelet release/storage, increase plasma ligand totals, or select manual/fixed production; calibration would otherwise require negative VEGF production or negative PlGF production.')
+        raise ValueError('Storage release exceeds the ligand loss supported by the selected starting plasma totals. Reduce storage release/amount, increase plasma ligand totals, or select manual/fixed production; calibration would otherwise require negative VEGF production or negative PlGF production.')
     q=np.maximum(q,0.)*np.array([p.input_s_multiplier,p.input_v_multiplier,p.input_p_multiplier])
     ks,kv,kp,kcv,kcp=rates
     pools=pool_parameters(p)
@@ -162,13 +162,13 @@ def simulate(p=None, production=None, treated=True, degrader_half_days=_DEFAULT_
     columns=dict(day=ts,free_sflt1_ng_mL=s*p.sflt1_mw_kda/1000,total_sflt1_ng_mL=(s+complexes.sum(axis=1))*p.sflt1_mw_kda/1000)
     for i,name in enumerate(['vegf','plgf']):
         mw=pools['mw'][i]; free=raw[:,1+i]; bound=raw[:,3+i]; other=raw[:,5+2*i]; stored=raw[:,6+2*i]
-        for label,value in [('free',free),('total',free+bound+other),('bound',bound),('other_bound',other),('platelet',stored),('all_pools',free+bound+other+stored),('cumulative',raw[:,9+i])]:
+        for label,value in [('free',free),('total',free+bound+other),('bound',bound),('other_bound',other),('platelet' if i==0 else 'placental',stored),('all_pools',free+bound+other+stored),('cumulative',raw[:,9+i])]:
             key=f'cumulative_{name}_codegraded_pg_mL' if label=='cumulative' else f'{label}_{name}_pg_mL'
             columns[key]=value*mw
     df=pd.DataFrame(columns)
     meta={**asdict(p),'production_s_pM_day':q[0],'production_v_pM_day':q[1],'production_p_pM_day':q[2],
           'platelet_production_pM_day':qt[0],'platelet_effective_capacity_pM':storage_capacity[0],
-          'degrader_half_days':degrader_half_days,'plgf_platelet_production_pM_day':qt[1],'plgf_platelet_effective_capacity_pM':storage_capacity[1]}
+          'degrader_half_days':degrader_half_days,'plgf_placental_production_pM_day':qt[1],'plgf_placental_effective_capacity_pM':storage_capacity[1]}
     return df,meta
 
 def model(kdeg=2,kv=None,co=0.25,**kwargs):

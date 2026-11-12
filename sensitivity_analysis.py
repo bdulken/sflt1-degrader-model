@@ -41,7 +41,7 @@ def main():
         ('All-pools VEGF / PlGF',f'{b.all_pools_vegf_pg_mL:.0f} / {b.all_pools_plgf_pg_mL:.0f} pg/mL'),
         ('sFLT1 / complex half-life',f'{BASE.sflt1_half_hours:g} / {BASE.sv_half_hours:g} h'),
         ('Kd: VEGF / PlGF (all pools)',f'{BASE.kd_v_pm:g} / {BASE.kd_p_pm:g} pM'),
-        ('Other-bound / platelet loss half-life',f'{BASE.other_complex_half_hours:g} / {BASE.platelet_half_hours:g} h'),
+        ('Other-bound / storage loss half-life',f'{BASE.other_complex_half_hours:g} / {BASE.platelet_half_hours:g} h'),
         ('Production','Recalibrate untreated steady state'),
     ]
     pd.DataFrame(baseline_rows,columns=['Parameter','Default']).to_csv(OUT/'baseline_parameters.csv',index=False)
@@ -116,7 +116,7 @@ Nine separate plots (PNG and vector PDF), including total sFLT1 for each analysi
 
 These are separate one-at-a-time analyses, not a full factorial combination. All analyses use a single dose on day 0 with initial clearance 2/day and exponential decay. Degrader half-life is 3 days in the VEGF-half-life and co-degradation analyses. Both ligand co-degradation fractions stay at 25% in the other analyses. Free VEGF half-life stays at 34 minutes except in its own analysis. Treatment begins on day 0; simulation and treatment windows end at day 14.
 
-For each scenario, production is recalibrated to the initial untreated kinetic steady state, then kept fixed throughout the simulation. Initial distributions, other binding and platelet storage retain their current default values. Untreated curves coincide across scenarios and are shown as a single dashed baseline. Production differs across VEGF-half-life scenarios; this is not a fixed-production comparison.
+For each scenario, production is recalibrated to the initial untreated kinetic steady state, then kept fixed throughout the simulation. Initial distributions, other binding, platelet VEGF storage and placental PlGF storage retain their current default values. Untreated curves coincide across scenarios and are shown as a single dashed baseline. Production differs across VEGF-half-life scenarios; this is not a fixed-production comparison.
 
 Summary CSV reports ligand day-14 and peak concentrations with peak timing, plus total sFLT1 endpoints and nadirs (ng/mL); decaying degrader responses can peak before day 14. Full treated/untreated time courses and effective clearance are in the time-course CSV. Full defaults and effective inputs are in the parameters JSON. Units for concentrations are pg/mL and time is days. All values are exploratory model predictions, not validated physiological estimates.
 

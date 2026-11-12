@@ -55,7 +55,7 @@ with sensitivity_tab:
     right = baseline_defaults.iloc[6:].reset_index(drop=True).rename(columns={'Parameter':'Parameter (continued)','Default':'Default (continued)'})
     st.markdown('**Baseline defaults for these saved analyses**')
     st.dataframe(pd.concat([left,right],axis=1),hide_index=True,use_container_width=True)
-    st.caption('Each sensitivity varies the labeled parameter away from this reference; all other defaults remain fixed. Other-binder and platelet affinities are effective assumptions.')
+    st.caption('Each sensitivity varies the labeled parameter away from this reference; all other defaults remain fixed. Other-binder and storage affinities are effective assumptions.')
     st.info('These are saved reference results using model defaults, not the current sidebar inputs. All analyses use a single dose on day 0, initial clearance 2/day, and exponential activity decay. The reference degrader half-life is 3 days except when varied. Other settings retain their defaults, including 25% co-degradation when that parameter is not being varied.')
     results = Path(__file__).resolve().parent / 'sensitivity_results'
     for group, title, description in [
@@ -77,7 +77,7 @@ with sensitivity_tab:
         st.download_button('Download total sFLT1 plot (PDF)', (results / f'{stem}.pdf').read_bytes(), f'{stem}.pdf', 'application/pdf', key=f'download_{stem}')
         if group != 'degrader_half_life':
             st.caption('Total sFLT1 curves overlap: with identical natural sFLT1/complex clearance and equal degrader activity on free/bound sFLT1, these ligand parameter changes do not alter total sFLT1 turnover.')
-    st.caption('Axes use different vertical scales. Platelet and other-binding pools are exploratory assumptions. Peaks can occur before day 14; endpoint and peak results are both reported in the summary.')
+    st.caption('Axes use different vertical scales. Storage and other-binding pools are exploratory assumptions. Peaks can occur before day 14; endpoint and peak results are both reported in the summary.')
     st.download_button('Download all nine plots (PDF)', (results / 'sensitivity_analysis_all_plots.pdf').read_bytes(), 'sensitivity_analysis_all_plots.pdf', 'application/pdf')
     st.download_button('Download sensitivity summary (CSV)', (results / 'sensitivity_summary.csv').read_bytes(), 'sensitivity_summary.csv', 'text/csv')
     st.download_button('Download sensitivity time courses (CSV)', (results / 'sensitivity_time_courses.csv').read_bytes(), 'sensitivity_time_courses.csv', 'text/csv')
@@ -95,7 +95,7 @@ with model_tab:
         with st.expander('Starting total concentrations',expanded=True):
             number('sflt1_ng_ml','Total sFLT1 (ng/mL)')
             number('vegf_pg_ml','Total plasma VEGF-A, excluding platelets (pg/mL)')
-            number('plgf_pg_ml','Total plasma PlGF, excluding platelets (pg/mL)')
+            number('plgf_pg_ml','Total plasma PlGF, excluding placental storage (pg/mL)')
         with st.expander('Natural clearance half-lives',expanded=True):
             number('sflt1_half_hours','Free sFLT1 half-life (hours)',0.001)
             number('vegf_half_hours','Free VEGF-A half-life (hours)',0.001)
@@ -130,14 +130,14 @@ with model_tab:
             number('plgf_other_kd_pm','Other binder–PlGF Kd (pM)',0.001)
             number('plgf_other_kon_pm_day','PlGF other-binder association (pM⁻¹ day⁻¹)',0.001)
             number('plgf_other_complex_half_hours','Other binder–PlGF complex half-life (hours)',0.001)
-        with st.expander('Platelet PlGF storage'):
-            st.caption('Hypothetical effective storage pool using the same equations as VEGF. Default effective Kd is 150 pM. This is a scenario assumption, not a measured platelet PlGF reservoir or affinity.')
-            number('platelet_plgf_pg_ml','Starting platelet-stored PlGF (pg/mL equivalent)')
-            number('plgf_platelet_kd_pm','Effective platelet PlGF storage Kd (pM)',0.001)
-            number('plgf_platelet_kon_pm_day','Effective platelet PlGF association (pM⁻¹ day⁻¹)')
-            number('plgf_platelet_release_per_day','Additional platelet PlGF release rate (/day)')
-            number('plgf_platelet_half_hours','Stored PlGF loss half-life, excluding release (hours)',0.001)
-            number('plgf_platelet_input_multiplier','Platelet PlGF replenishment multiplier')
+        with st.expander('Placental PlGF storage'):
+            st.caption('Hypothetical effective storage pool using the same equations as VEGF. Default effective Kd is 150 pM. This is a scenario assumption, not a measured placental PlGF reservoir or affinity.')
+            number('placental_plgf_pg_ml','Starting placental-stored PlGF (pg/mL equivalent)')
+            number('plgf_placental_kd_pm','Effective placental PlGF storage Kd (pM)',0.001)
+            number('plgf_placental_kon_pm_day','Effective placental PlGF association (pM⁻¹ day⁻¹)')
+            number('plgf_placental_release_per_day','Additional placental PlGF release rate (/day)')
+            number('plgf_placental_half_hours','Stored PlGF loss half-life, excluding release (hours)',0.001)
+            number('plgf_placental_input_multiplier','Placental PlGF replenishment multiplier')
         with st.expander('Binding kinetics'):
             number('kd_v_pm','VEGF–sFLT1 Kd (pM)',0.001)
             number('kd_p_pm','PlGF–sFLT1 Kd (pM)',0.001)
@@ -166,7 +166,7 @@ with model_tab:
     except (ValueError,RuntimeError) as exc:
         st.error(str(exc)); st.stop()
 
-    st.write('Treatment clears free sFLT1 and, according to relative activity, ligand-bound sFLT1. Bound ligand is either co-degraded or returned to the free pool. Natural complex clearance removes both partners. Other-bound and platelet-stored VEGF and PlGF are not directly targeted by the degrader; they become accessible to sFLT1 only after dissociation or release.')
+    st.write('Treatment clears free sFLT1 and, according to relative activity, ligand-bound sFLT1. Bound ligand is either co-degraded or returned to the free pool. Natural complex clearance removes both partners. Other-bound VEGF/PlGF, platelet-stored VEGF and placental-stored PlGF are not directly targeted by the degrader; they become accessible to sFLT1 only after dissociation or release.')
     cols=st.columns(3)
     for col,key,label in zip(cols,['total_sflt1_ng_mL','free_vegf_pg_mL','free_plgf_pg_mL'],['Total sFLT1 (ng/mL)','Free VEGF-A (pg/mL)','Free PlGF (pg/mL)']):
         initial=df[key].iloc[0]; final=df[key].iloc[-1]
@@ -193,15 +193,17 @@ with model_tab:
                 if kind=='free':
                     st.caption('Vertical axis follows the concentration range to show small changes.')
                 else:
-                    st.caption('Includes free, sFLT1-bound and other-bound ligand; excludes platelet storage.')
+                    st.caption('Includes free, sFLT1-bound and other-bound ligand; excludes platelet storage for VEGF and placental storage for PlGF.')
     for ligand,label in [('vegf','VEGF'),('plgf','PlGF')]:
         with st.expander(f'{label} distribution across pools',expanded=True):
+            storage = 'platelet' if ligand=='vegf' else 'placental'
+            storage_label = 'Platelet' if ligand=='vegf' else 'Placental'
             names={f'free_{ligand}_pg_mL':f'Free plasma {label}',f'bound_{ligand}_pg_mL':f'sFLT1-bound {label}',
-                   f'other_bound_{ligand}_pg_mL':f'Other-bound {label}',f'platelet_{ligand}_pg_mL':f'Platelet-stored {label}',
-                   f'total_{ligand}_pg_mL':'Plasma total (excludes platelets)',f'all_pools_{ligand}_pg_mL':'All pools (includes platelets)'}
+                   f'other_bound_{ligand}_pg_mL':f'Other-bound {label}',f'{storage}_{ligand}_pg_mL':f'{storage_label}-stored {label}',
+                   f'total_{ligand}_pg_mL':'Plasma total (excludes storage)',f'all_pools_{ligand}_pg_mL':'All pools (includes storage)'}
             chart(df.set_index('day')[list(names)].rename(columns=names),f'{label} (pg/mL plasma equivalent)')
-            st.caption('Plasma total = free + sFLT1-bound + other-bound ligand. All pools adds platelet storage. Neither sum predicts an assay result. Other-binder and platelet capacities are independent for VEGF and PlGF; the ligands compete only for sFLT1.')
-    st.caption('VEGF release during sample clotting is documented (https://pubmed.ncbi.nlm.nih.gov/9640345/). The analogous PlGF storage pool here is an exploratory assumption and is not validated by that VEGF study.')
+            st.caption('Plasma total = free + sFLT1-bound + other-bound ligand. All pools adds platelet VEGF or placental PlGF storage. Neither sum predicts an assay result. Other-binder and storage capacities are independent for VEGF and PlGF; the ligands compete only for sFLT1.')
+    st.caption('VEGF release during sample clotting is documented (https://pubmed.ncbi.nlm.nih.gov/9640345/). The placental PlGF storage pool here is an exploratory assumption and is not validated by that VEGF study.')
     with st.expander('Bound fractions and cumulative co-degradation'):
         fractions=pd.DataFrame(index=df.day)
         for ligand in ['vegf','plgf']:
@@ -213,7 +215,7 @@ with model_tab:
     with st.expander('Effective production inputs and parameters'):
         st.dataframe(pd.DataFrame({'Protein':['sFLT1','VEGF-A','PlGF'],'Input (pM/day)':[meta['production_s_pM_day'],meta['production_v_pM_day'],meta['production_p_pM_day']],'Input (ng/mL/day for sFLT1; pg/mL/day for ligands)':[meta['production_s_pM_day']*p.sflt1_mw_kda/1000,meta['production_v_pM_day']*p.vegf_mw_kda,meta['production_p_pM_day']*p.plgf_mw_kda]}),hide_index=True)
         st.caption(f"Platelet VEGF replenishment: {meta['platelet_production_pM_day']:.6g} pM/day ({meta['platelet_production_pM_day']*p.vegf_mw_kda:.6g} pg/mL/day equivalent), separate from the free VEGF input above.")
-        st.caption(f"Platelet PlGF replenishment: {meta['plgf_platelet_production_pM_day']:.6g} pM/day ({meta['plgf_platelet_production_pM_day']*p.plgf_mw_kda:.6g} pg/mL/day equivalent), separate from free PlGF input.")
+        st.caption(f"Placental PlGF replenishment: {meta['plgf_placental_production_pM_day']:.6g} pM/day ({meta['plgf_placental_production_pM_day']*p.plgf_mw_kda:.6g} pg/mL/day equivalent), separate from free PlGF input.")
         st.json(meta)
     with st.expander('Model equations and assumptions'):
         st.markdown('''Core states are free sFLT1 (S), free VEGF (V), free PlGF (P), and complexes Cᵥ and Cₚ, in pM. Binding competes for one effective sFLT1 site with 1:1 stoichiometry. Molecular weights convert mass concentrations into molar concentrations; dimerization and isoforms are not explicit.
@@ -228,13 +230,13 @@ with model_tab:
 
     Initialization solves the **kinetic untreated steady state**, including complex clearance: Cₗ = S L / (Kdₗ + kCₗ/konₗ). Production is then calibrated to balance losses. This avoids drift caused by initializing at binding equilibrium while simultaneously clearing complexes. Changing half-life in recalibration mode also changes production.
 
-    For each ligand L (VEGF or PlGF), two additional states are other-bound ligand O and platelet-stored ligand T. Each has independent site capacities and kinetics. Other-binding flux is Rₒ = konₒ (B − O)L − koffₒ O; dO/dt = Rₒ − kₒ O. Clearance destroys bound ligand, with total binding capacity maintained externally.
+    For each ligand L (VEGF or PlGF), two additional states are other-bound ligand O and stored ligand T (platelet VEGF or placental PlGF). Each has independent site capacities and kinetics. Other-binding flux is Rₒ = konₒ (B − O)L − koffₒ O; dO/dt = Rₒ − kₒ O. Clearance destroys bound ligand, with total binding capacity maintained externally.
 
-    Platelet exchange is Rₜ = konₜ (Bₜ − T)L − konₜ Kdₜ T. Effective capacity Bₜ = T₀(1 + Kdₜ/L₀) gives zero initial net exchange when starting free ligand is positive. Platelet storage obeys dT/dt = qT − (r + kT)T + Rₜ. The free ligand equation gains −Rₒ − Rₜ + rT. The independently calibrated platelet replenishment qT maintains the starting store, scaled by its multiplier. A zero free starting concentration uses Bₜ = T₀ and replenishment also balances initial dissociation. These effective storage models do not imply measured platelet receptor affinities.
+    Storage exchange is Rₜ = konₜ (Bₜ − T)L − konₜ Kdₜ T. Effective capacity Bₜ = T₀(1 + Kdₜ/L₀) gives zero initial net exchange when starting free ligand is positive. Storage obeys dT/dt = qT − (r + kT)T + Rₜ. The free ligand equation gains −Rₒ − Rₜ + rT. The independently calibrated storage replenishment qT maintains the starting store, scaled by its multiplier. A zero free starting concentration uses Bₜ = T₀ and replenishment also balances initial dissociation. These effective storage models do not imply measured storage receptor affinities.
 
-    Stored ligand is inaccessible to direct sFLT1 binding or degrader clearance until released. VEGF and PlGF compete for sFLT1; the other-binder and platelet sites are separate effective pools for each ligand, with no cross-competition. PlGF storage is a hypothetical scenario extension, not an experimentally calibrated pool.
+    Stored ligand is inaccessible to direct sFLT1 binding or degrader clearance until released. VEGF and PlGF compete for sFLT1; the other-binder and storage sites are separate effective pools for each ligand, with no cross-competition. PlGF storage is a hypothetical scenario extension, not an experimentally calibrated pool.
 
-    For each ligand, starting plasma total includes free + sFLT1-bound + other-bound; platelet storage is additional. Initialization solves competitive sFLT1 occupancy with both other-binding pools at kinetic steady state. Free-protein production balances plasma clearance minus additional platelet release. Negative calibrated production produces an error. Fixed-reference and manual inputs override free-protein production only; each platelet replenishment multiplier is separate.
+    For each ligand, starting plasma total includes free + sFLT1-bound + other-bound; platelet VEGF or placental PlGF storage is additional. Initialization solves competitive sFLT1 occupancy with both other-binding pools at kinetic steady state. Free-protein production balances plasma clearance minus additional storage release. Negative calibrated production produces an error. Fixed-reference and manual inputs override free-protein production only; each storage replenishment multiplier is separate.
 
     The PDF supplies illustrative starting concentrations and clearance/affinity assumptions. Association rates of 1 pM⁻¹ day⁻¹ and molecular weights are explicit modeling assumptions. No drug concentration, dose-to-clearance relationship, tissue compartments, receptor signaling, feedback or clinical outcomes are inferred.''')
     st.download_button('Download treated time course',df.to_csv(index=False),'treated.csv','text/csv')
