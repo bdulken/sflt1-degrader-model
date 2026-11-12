@@ -20,7 +20,7 @@ GROUPS=[
      'Single dose: initial clearance 2/day, degrader half-life 1 day; 25% co-degradation'),
     ('degrader_half_life','Degrader half-life',[('2 hours',{},2/24),('12 hours',{},12/24)]+[(f'{h} day'+('s' if h!=1 else ''),{},h) for h in [1,3,7]],
      'Single dose: initial clearance 2/day, exponentially decaying; 25% co-degradation'),
-    ('codegradation','Ligand co-degradation',[(f'{int(f*100)}%',dict(co_v=f,co_p=f),BASE.degrader_half_days) for f in [.25,.5,.75]],
+    ('codegradation','Ligand co-degradation',[(f'{int(f*100)}%',dict(co_v=f,co_p=f),BASE.degrader_half_days) for f in [.25,.5,.75,1.0]],
      'Same fraction for VEGF and PlGF; single dose, initial clearance 2/day, half-life 1 day'),
 ]
 COLORS=['#176b99','#d17b18','#287961','#884da0','#c14465']
@@ -102,7 +102,7 @@ Nine separate plots (PNG and vector PDF), including total sFLT1 for each analysi
 
 - Free VEGF half-life: 1, 4, 8, 12 hours. PlGF free half-life stays at its default (16.64 hours).
 - Degrader half-life: 2 hours, 12 hours, 1 day, 3 days, 7 days, with single-dose initial effective clearance of 2/day. Effective clearance decays as 2*exp(-ln(2)*t/half-life). No redosing. This assumes activity is proportional to exposure, not a saturable PK/PD model.
-- Co-degradation fraction: 25%, 50%, 75%, changed together for both ligands. The remainder returns to free ligand.
+- Co-degradation fraction: 25%, 50%, 75%, 100%, changed together for both ligands. The remainder returns to free ligand.
 
 These are separate one-at-a-time analyses, not a full factorial combination. All analyses use a single dose on day 0 with initial clearance 2/day and exponential decay. Degrader half-life is 1 day in the VEGF-half-life and co-degradation analyses. Both ligand co-degradation fractions stay at 25% in the other analyses. Free VEGF half-life stays at 34 minutes except in its own analysis. Treatment begins on day 0; simulation and treatment windows end at day 14.
 
