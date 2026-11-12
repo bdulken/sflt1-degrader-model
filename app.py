@@ -36,12 +36,11 @@ model_tab, schematic_tab, sensitivity_tab, defaults_tab = st.tabs(['Interactive 
 
 with defaults_tab:
     st.subheader('Default parameters')
-    st.caption('Reference values from the model defaults, independent of sidebar edits. VEGF storage is in platelets; PlGF storage is in the placenta. Plasma ligand totals exclude storage. Fractions of 0.25 and 1 correspond to 25% and 100%.')
+    st.caption('Saved model defaults, independent of sidebar edits.')
     defaults = default_parameter_table()
-    st.dataframe(defaults,hide_index=True,width='stretch',height=1020)
-    st.caption('Default production mode: recalibrate to initial untreated steady state, then hold inputs fixed. One degrader dose is given on day 0 with exponential activity decay; no redosing. Free VEGF half-life 0.566667 hours = 34 minutes. Storage kinetics and affinities are effective assumptions.')
+    st.dataframe(defaults,hide_index=True,width='stretch')
+    st.caption('Starting VEGF and PlGF totals include all binding and storage pools. Their plasma totals exclude storage: VEGF 68.83 pg/mL; PlGF 77.91 pg/mL. Kd describes ligand binding to sFLT1. Co-degradation is the fraction of bound ligand destroyed when sFLT1 is degraded; sFLT1 itself is removed.')
     st.download_button('Download default parameters (CSV)',defaults.to_csv(index=False),'default_parameters.csv','text/csv',key='download_default_parameters')
-    st.download_button('Download default input parameters (JSON)',json.dumps(asdict(base),indent=2),'default_input_parameters.json','application/json',key='download_default_inputs')
 
 with schematic_tab:
     st.subheader('Model schematic')
