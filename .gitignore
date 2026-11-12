@@ -9,5 +9,5 @@ __pycache__/
 # Local project context and generated sensitivity outputs
 Explain sFLT1 mechanisms.pdf
 project_context.txt
-vegf_half_life_*.csv
-vegf_half_life_*.png
+/vegf_half_life_*.csv
+/vegf_half_life_*.png
