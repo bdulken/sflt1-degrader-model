@@ -1,0 +1,31 @@
+
+[     UTC     ] Logs for bdulken-sflt1-degrader-model-app-vqkl14.streamlit.app/
+────────────────────────────────────────────────────────────────────────────────────────
+[02:01:30] 🖥 Provisioning machine...
+[02:01:30] 🎛 Preparing system...
+[02:01:30] ⛓ Spinning up manager process...
+[01:45:54] 🚀 Starting up repository: 'sflt1-degrader-model', branch: 'main', main module: 'app.py'
+[01:45:54] 🐙 Cloning repository...
+[01:45:54] 🐙 Cloning into '/mount/src/sflt1-degrader-model'...
+
+[01:45:54] 🐙 Cloned repository!
+[01:45:54] 🐙 Pulling code changes from Github...
+[01:45:55] 📦 Processing dependencies...
+
+──────────────────────────────────────── uv ───────────────────────────────────────────
+
+Using uv pip install.
+Using Python 3.14.10 environment at: /home/adminuser/venv
+Resolved 37 packages in 626ms
+Downloading pydeck (10.9MiB)
+Downloading pyarrow (52.5MiB)
+Downloading pandas [2026-11-12 01:45:56.079524] (11.8MiB)
+Downloading pillow (6.3MiB)
+Downloading streamlit (9.6MiB)
+ Downloaded pillow
+ Downloaded streamlit
+ Downloaded pydeck
+ Downloaded pandas
+   Building numpy==2.0.2
+ Downloaded pyarrow
+   Building scipy==1.13.1
